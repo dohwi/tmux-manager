@@ -67,6 +67,10 @@ var (
 
 	emptyHintStyle = lipgloss.NewStyle().
 			Foreground(current)
+
+	cfgTag = lipgloss.NewStyle().
+		Foreground(purple).
+		Render("cfg")
 )
 
 func newDelegate() list.DefaultDelegate {

@@ -12,15 +12,27 @@ import (
 	"tmux-manager/internal/tmux"
 )
 
+type PaneConfig struct {
+	Command   string `yaml:"command,omitempty"`
+	Direction string `yaml:"direction,omitempty"` // "right" | "down"
+}
+
 type WindowConfig struct {
-	Name    string `yaml:"name"`
-	Command string `yaml:"command,omitempty"`
+	Name    string       `yaml:"name,omitempty"`
+	Command string       `yaml:"command,omitempty"`
+	Panes   []PaneConfig `yaml:"panes,omitempty"`
 }
 
 type SessionConfig struct {
+	Name      string         `yaml:"name"`
 	Directory string         `yaml:"directory,omitempty"`
 	Command   string         `yaml:"command,omitempty"`
 	Windows   []WindowConfig `yaml:"windows,omitempty"`
+	Panes     []PaneConfig   `yaml:"panes,omitempty"`
+}
+
+type configFile struct {
+	Sessions []SessionConfig `yaml:"sessions"`
 }
 
 func ConfigDir() (string, error) {
@@ -50,7 +62,6 @@ func LoadAll() (map[string]SessionConfig, error) {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".yaml") {
 			continue
 		}
-		name := strings.TrimSuffix(entry.Name(), ".yaml")
 		fullPath := filepath.Join(dir, entry.Name())
 
 		data, err := os.ReadFile(fullPath)
@@ -58,11 +69,20 @@ func LoadAll() (map[string]SessionConfig, error) {
 			return nil, fmt.Errorf("reading %s: %w", entry.Name(), err)
 		}
 
-		var cfg SessionConfig
-		if err := yaml.Unmarshal(data, &cfg); err != nil {
+		var file configFile
+		if err := yaml.Unmarshal(data, &file); err != nil {
 			return nil, fmt.Errorf("parsing %s: %w", entry.Name(), err)
 		}
-		configs[name] = cfg
+
+		for _, cfg := range file.Sessions {
+			if cfg.Name == "" {
+				return nil, fmt.Errorf("%s: each session must have a 'name' field", entry.Name())
+			}
+			if _, ok := configs[cfg.Name]; ok {
+				return nil, fmt.Errorf("duplicate session name: %s (from %s)", cfg.Name, entry.Name())
+			}
+			configs[cfg.Name] = cfg
+		}
 	}
 	return configs, nil
 }
@@ -100,27 +120,46 @@ func createSession(name string, cfg SessionConfig) error {
 		return err
 	}
 
-	sessionCmd := cfg.Command
-	firstWindowCmd := ""
 	if len(cfg.Windows) > 0 {
-		firstWindowCmd = cfg.Windows[0].Command
-	}
-
-	if firstWindowCmd != "" {
-		exec.Command("tmux", "send-keys", "-t", name+":0", firstWindowCmd, "Enter").Run()
-	} else if sessionCmd != "" {
-		exec.Command("tmux", "send-keys", "-t", name+":0", sessionCmd, "Enter").Run()
+		createWindowPanes(name, 0, cfg.Windows[0])
+	} else if len(cfg.Panes) > 0 {
+		createWindowPanes(name, 0, WindowConfig{Panes: cfg.Panes})
+	} else if cfg.Command != "" {
+		exec.Command("tmux", "send-keys", "-t", name+":0", cfg.Command, "Enter").Run()
 	}
 
 	for i := 1; i < len(cfg.Windows); i++ {
 		w := cfg.Windows[i]
 		exec.Command("tmux", "new-window", "-t", name, "-n", w.Name).Run()
-		if w.Command != "" {
-			exec.Command("tmux", "send-keys", "-t", fmt.Sprintf("%s:%d", name, i), w.Command, "Enter").Run()
-		}
+		createWindowPanes(name, i, w)
 	}
 
 	return nil
+}
+
+func createWindowPanes(session string, windowIdx int, w WindowConfig) {
+	target := fmt.Sprintf("%s:%d", session, windowIdx)
+
+	if len(w.Panes) > 0 {
+		if w.Panes[0].Command != "" {
+			exec.Command("tmux", "send-keys", "-t", target+".0", w.Panes[0].Command, "Enter").Run()
+		}
+		for i := 1; i < len(w.Panes); i++ {
+			flag := "-v"
+			if w.Panes[i].Direction == "right" {
+				flag = "-h"
+			}
+			exec.Command("tmux", "split-window", "-t", target, flag).Run()
+			if w.Panes[i].Command != "" {
+				exec.Command("tmux", "send-keys", "-t", target, w.Panes[i].Command, "Enter").Run()
+			}
+		}
+		return
+	}
+
+	if w.Command != "" {
+		exec.Command("tmux", "send-keys", "-t", target+".0", w.Command, "Enter").Run()
+	}
 }
 
 func expandHome(path string) string {

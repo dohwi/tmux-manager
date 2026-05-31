@@ -2,6 +2,7 @@ package tmux
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -10,6 +11,26 @@ import (
 func IsAvailable() bool {
 	_, err := exec.LookPath("tmux")
 	return err == nil
+}
+
+func IsInsideTmux() bool {
+	tty, err := os.Readlink("/proc/self/fd/0")
+	if err != nil {
+		return false
+	}
+
+	cmd := exec.Command("tmux", "list-clients", "-F", "#{client_tty}")
+	out, err := cmd.Output()
+	if err != nil {
+		return false
+	}
+
+	for _, clientTTY := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		if clientTTY == tty {
+			return true
+		}
+	}
+	return false
 }
 
 func ListSessions() ([]Session, error) {
@@ -39,7 +60,12 @@ func ListSessions() ([]Session, error) {
 }
 
 func SwitchSession(name string) error {
-	return exec.Command("tmux", "switch-client", "-t", name).Run()
+	cmd := exec.Command("tmux", "switch-client", "-t", name)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf(strings.TrimSpace(string(out)))
+	}
+	return nil
 }
 
 func NewDetached(name string) error {

@@ -11,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"tmux-manager/internal/config"
 	"tmux-manager/internal/tmux"
 )
 
@@ -24,6 +25,7 @@ const (
 
 type sessionItem struct {
 	session tmux.Session
+	managed bool
 }
 
 func (i sessionItem) Title() string {
@@ -35,7 +37,13 @@ func (i sessionItem) Title() string {
 
 func (i sessionItem) Description() string {
 	if i.session.Attached {
+		if i.managed {
+			return statusAttached + "  " + cfgTag
+		}
 		return statusAttached
+	}
+	if i.managed {
+		return statusDetached + "  " + cfgTag
 	}
 	return statusDetached
 }
@@ -45,15 +53,16 @@ func (i sessionItem) FilterValue() string {
 }
 
 type model struct {
-	list         list.Model
-	textInput    textinput.Model
-	inputMode    inputMode
-	renameTarget string
-	attachTarget string
-	statusMsg    string
-	statusIsErr  bool
-	width        int
-	height       int
+	list          list.Model
+	textInput     textinput.Model
+	inputMode     inputMode
+	renameTarget  string
+	attachTarget  string
+	statusMsg     string
+	statusIsErr   bool
+	managedNames  map[string]bool
+	width         int
+	height        int
 }
 
 func Run() (string, error) {
@@ -86,11 +95,13 @@ func newModel() model {
 	}
 
 	sessions, err := tmux.ListSessions()
+	managed := loadManagedNames()
+
 	var items []list.Item
 	if sessions != nil {
 		items = make([]list.Item, len(sessions))
 		for i, s := range sessions {
-			items[i] = sessionItem{session: s}
+			items[i] = sessionItem{session: s, managed: managed[s.Name]}
 		}
 	}
 
@@ -100,12 +111,24 @@ func newModel() model {
 	l.SetShowHelp(false)
 	l.SetShowTitle(false)
 
-	m := model{list: l, textInput: ti}
+	m := model{list: l, textInput: ti, managedNames: loadManagedNames()}
 	if err != nil {
 		m.statusMsg = err.Error()
 		m.statusIsErr = true
 	}
 	return m
+}
+
+func loadManagedNames() map[string]bool {
+	cfgs, err := config.LoadAll()
+	if err != nil {
+		return nil
+	}
+	names := make(map[string]bool, len(cfgs))
+	for name := range cfgs {
+		names[name] = true
+	}
+	return names
 }
 
 func (m model) Init() tea.Cmd {
@@ -230,6 +253,7 @@ func (m model) handleBrowseKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m *model) refreshSessions() {
+	m.managedNames = loadManagedNames()
 	sessions, err := tmux.ListSessions()
 	if err != nil {
 		m.statusMsg = err.Error()
@@ -239,7 +263,7 @@ func (m *model) refreshSessions() {
 	}
 	items := make([]list.Item, len(sessions))
 	for i, s := range sessions {
-		items[i] = sessionItem{session: s}
+		items[i] = sessionItem{session: s, managed: m.managedNames[s.Name]}
 	}
 	m.list.SetItems(items)
 }
