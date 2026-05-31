@@ -10,10 +10,12 @@ import (
 	"tmux-manager/internal/config"
 	"tmux-manager/internal/tmux"
 	"tmux-manager/internal/tui"
+	"tmux-manager/internal/update"
 )
 
 func main() {
 	if len(os.Args) < 2 {
+		checkAutoUpdate()
 		runTUI()
 		return
 	}
@@ -23,7 +25,10 @@ func main() {
 		runRestore()
 	case "setup":
 		runSetup()
+	case "update":
+		runUpdate()
 	default:
+		checkAutoUpdate()
 		runTUI()
 	}
 }
@@ -113,6 +118,54 @@ func runSetup() {
 
 	fmt.Println("\ntmux-manager setup complete.")
 	fmt.Println("  Run 'tm' to start, or open a new terminal first.")
+}
+
+func runUpdate() {
+	repoDir, err := update.FindRepoDir()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "update error: %v\n", err)
+		os.Exit(1)
+	}
+
+	needs, err := update.CheckUpdate(repoDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "check error: %v\n", err)
+		os.Exit(1)
+	}
+
+	if !needs {
+		fmt.Println("Already up to date.")
+		update.MarkChecked()
+		return
+	}
+
+	fmt.Println("Updating...")
+	if err := update.Update(repoDir); err != nil {
+		fmt.Fprintf(os.Stderr, "update error: %v\n", err)
+		os.Exit(1)
+	}
+
+	update.MarkChecked()
+	fmt.Println("Updated successfully. Run 'tm' to start.")
+}
+
+func checkAutoUpdate() {
+	if !update.ShouldCheck() {
+		return
+	}
+
+	repoDir, err := update.FindRepoDir()
+	if err != nil {
+		return
+	}
+
+	needs, err := update.CheckUpdate(repoDir)
+	update.MarkChecked()
+	if err != nil || !needs {
+		return
+	}
+
+	fmt.Fprintf(os.Stderr, "\nA new version is available. Run 'tm update' to update.\n\n")
 }
 
 func ensureLine(path, line, marker string) error {
