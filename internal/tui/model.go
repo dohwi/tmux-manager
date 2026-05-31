@@ -141,7 +141,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.list.SetSize(msg.Width-6, msg.Height-9)
+		listHeight := msg.Height - 9
+		if m.updateAvailable {
+			listHeight -= 3
+		}
+		m.list.SetSize(msg.Width-6, listHeight)
 		return m, nil
 
 	case tea.KeyMsg:
@@ -278,8 +282,12 @@ func (m model) View() string {
 
 	listView := m.list.View()
 	if len(m.list.Items()) == 0 && m.inputMode == inputNone {
+		emptyHeight := m.height - 9
+		if m.updateAvailable {
+			emptyHeight -= 3
+		}
 		listView = lipgloss.Place(
-			m.width-6, m.height-9,
+			m.width-6, emptyHeight,
 			lipgloss.Center, lipgloss.Center,
 			lipgloss.JoinVertical(lipgloss.Center,
 				emptyStyle.Render("No tmux sessions running"),
@@ -301,22 +309,14 @@ func (m model) View() string {
 		}
 	}
 
-	var updateBanner string
+	sections := []string{header}
 	if m.updateAvailable {
-		updateBanner = updateNoticeStyle.Render("A new version is available. Run 'tm update' to update.")
+		sections = append(sections, updateNoticeStyle.Render("A new version is available. Run 'tm update' to update."))
 	}
+	sections = append(sections, "", listView, "", sep, bottomBar, statusBar)
 
 	return appStyle.Render(
-		lipgloss.JoinVertical(lipgloss.Left,
-			header,
-			updateBanner,
-			"",
-			listView,
-			"",
-			sep,
-			bottomBar,
-			statusBar,
-		),
+		lipgloss.JoinVertical(lipgloss.Left, sections...),
 	)
 }
 
