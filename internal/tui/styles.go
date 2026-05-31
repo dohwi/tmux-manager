@@ -71,6 +71,13 @@ var (
 	cfgTag = lipgloss.NewStyle().
 		Foreground(purple).
 		Render("cfg")
+
+	updateNoticeStyle = lipgloss.NewStyle().
+				Foreground(green).
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(pink).
+				Padding(0, 1)
+
 )
 
 func newDelegate() list.DefaultDelegate {

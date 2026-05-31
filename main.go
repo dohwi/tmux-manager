@@ -15,8 +15,8 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		checkAutoUpdate()
-		runTUI()
+		updateAvailable := checkAutoUpdate()
+		runTUI(updateAvailable)
 		return
 	}
 
@@ -28,8 +28,8 @@ func main() {
 	case "update":
 		runUpdate()
 	default:
-		checkAutoUpdate()
-		runTUI()
+		updateAvailable := checkAutoUpdate()
+		runTUI(updateAvailable)
 	}
 }
 
@@ -40,8 +40,8 @@ func runRestore() {
 	}
 }
 
-func runTUI() {
-	session, err := tui.Run()
+func runTUI(updateAvailable bool) {
+	session, err := tui.Run(updateAvailable)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
@@ -149,23 +149,23 @@ func runUpdate() {
 	fmt.Println("Updated successfully. Run 'tm' to start.")
 }
 
-func checkAutoUpdate() {
+func checkAutoUpdate() bool {
 	if !update.ShouldCheck() {
-		return
+		return false
 	}
 
 	repoDir, err := update.FindRepoDir()
 	if err != nil {
-		return
+		return false
 	}
 
 	needs, err := update.CheckUpdate(repoDir)
 	update.MarkChecked()
-	if err != nil || !needs {
-		return
+	if err != nil {
+		return false
 	}
 
-	fmt.Fprintf(os.Stderr, "\nA new version is available. Run 'tm update' to update.\n\n")
+	return needs
 }
 
 func ensureLine(path, line, marker string) error {

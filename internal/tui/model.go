@@ -53,20 +53,21 @@ func (i sessionItem) FilterValue() string {
 }
 
 type model struct {
-	list          list.Model
-	textInput     textinput.Model
-	inputMode     inputMode
-	renameTarget  string
-	attachTarget  string
-	statusMsg     string
-	statusIsErr   bool
-	managedNames  map[string]bool
-	width         int
-	height        int
+	list            list.Model
+	textInput       textinput.Model
+	inputMode       inputMode
+	renameTarget    string
+	attachTarget    string
+	statusMsg       string
+	statusIsErr     bool
+	managedNames    map[string]bool
+	updateAvailable bool
+	width           int
+	height          int
 }
 
-func Run() (string, error) {
-	p := tea.NewProgram(newModel(), tea.WithAltScreen())
+func Run(updateAvailable bool) (string, error) {
+	p := tea.NewProgram(newModel(updateAvailable), tea.WithAltScreen())
 	m, err := p.Run()
 	if err != nil {
 		return "", err
@@ -78,7 +79,7 @@ func Run() (string, error) {
 	return final.attachTarget, nil
 }
 
-func newModel() model {
+func newModel(updateAvailable bool) model {
 	wd, _ := os.Getwd()
 	defaultName := filepath.Base(wd)
 
@@ -111,7 +112,7 @@ func newModel() model {
 	l.SetShowHelp(false)
 	l.SetShowTitle(false)
 
-	m := model{list: l, textInput: ti, managedNames: loadManagedNames()}
+	m := model{list: l, textInput: ti, managedNames: loadManagedNames(), updateAvailable: updateAvailable}
 	if err != nil {
 		m.statusMsg = err.Error()
 		m.statusIsErr = true
@@ -300,9 +301,15 @@ func (m model) View() string {
 		}
 	}
 
+	var updateBanner string
+	if m.updateAvailable {
+		updateBanner = updateNoticeStyle.Render("A new version is available. Run 'tm update' to update.")
+	}
+
 	return appStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Left,
 			header,
+			updateBanner,
 			"",
 			listView,
 			"",
