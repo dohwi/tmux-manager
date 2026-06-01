@@ -1,7 +1,7 @@
 package tmux
 
 type Session struct {
-	Name    string
-	Windows int
+	Name     string
+	Windows  int
 	Attached bool
 }
