@@ -70,12 +70,13 @@ tm restore  # Restore sessions from config
 
 `~/.config/tmux-manager/sessions/*.yaml`
 
-### Minimal — single command
+### Minimal — single pane
 
 ```yaml
 sessions:
   - name: monitoring
-    command: htop
+    panes:
+      - command: htop
 ```
 
 ### Side-by-side split
@@ -83,11 +84,12 @@ sessions:
 ```yaml
 sessions:
   - name: dev
-    directory: ~/projects/myapp
     panes:
       - command: nvim
+        directory: ~/projects/myapp
       - command: lazygit
         direction: right
+        directory: ~/projects/myapp
 ```
 
 ```
@@ -101,13 +103,15 @@ sessions:
 ```yaml
 sessions:
   - name: dev
-    directory: ~/projects/myapp
     panes:
       - command: nvim
+        directory: ~/projects/myapp
       - command: lazygit
         direction: right
+        directory: ~/projects/myapp
       - command: npm run dev
         direction: down
+        directory: ~/projects/myapp
 ```
 
 ```
@@ -124,14 +128,15 @@ sessions:
 ```yaml
 sessions:
   - name: myapp
-    directory: ~/projects/myapp
     windows:
       - name: code
+        directory: ~/projects/myapp
         panes:
           - command: nvim
           - command: lazygit
             direction: right
       - name: infra
+        directory: ~/projects/myapp
         panes:
           - command: docker-compose up
           - command: docker logs -f
@@ -143,15 +148,17 @@ sessions:
 ```yaml
 sessions:
   - name: dev
-    directory: ~/projects/myapp
     panes:
       - command: opencode
+        directory: ~/projects/myapp
       - command: lazygit
         direction: right
+        directory: ~/projects/myapp
 
   - name: db
-    directory: ~/projects/myapp
-    command: psql myapp
+    panes:
+      - command: psql myapp
+        directory: ~/projects/myapp
 ```
 
 ---
@@ -162,13 +169,15 @@ sessions:
 |:------|:--------:|:------------|
 | `sessions` | ✅ | Session definition array |
 | `sessions[].name` | ✅ | tmux session name |
-| `sessions[].directory` | | Starting directory (`~/` supported) |
-| `sessions[].command` | | Command to run in the first pane |
 | `sessions[].windows` | | Window list |
 | `sessions[].windows[].name` | | Window tab name (defaults if omitted) |
+| `sessions[].windows[].directory` | | Working directory for the window (`~/` supported) |
+| `sessions[].windows[].command` | | Command for a single-pane window |
 | `sessions[].windows[].panes` | | Pane layout within the window |
 | `sessions[].panes` | | Pane layout for the default window |
 | `panes[].command` | | Command to run in the pane |
+| `panes[].directory` | | Working directory for the pane (`~/` supported) |
+| `panes[].name` | | Pane title (sets tmux pane title) |
 | `panes[].direction` | | Split direction: `right` · `down` (omit for first pane) |
 
 ---
