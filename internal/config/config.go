@@ -15,20 +15,21 @@ import (
 type PaneConfig struct {
 	Command   string `yaml:"command,omitempty"`
 	Direction string `yaml:"direction,omitempty"` // "right" | "down"
+	Directory string `yaml:"directory,omitempty"`
+	Name      string `yaml:"name,omitempty"`
 }
 
 type WindowConfig struct {
-	Name    string       `yaml:"name,omitempty"`
-	Command string       `yaml:"command,omitempty"`
-	Panes   []PaneConfig `yaml:"panes,omitempty"`
+	Name      string       `yaml:"name,omitempty"`
+	Command   string       `yaml:"command,omitempty"`
+	Directory string       `yaml:"directory,omitempty"`
+	Panes     []PaneConfig `yaml:"panes,omitempty"`
 }
 
 type SessionConfig struct {
-	Name      string         `yaml:"name"`
-	Directory string         `yaml:"directory,omitempty"`
-	Command   string         `yaml:"command,omitempty"`
-	Windows   []WindowConfig `yaml:"windows,omitempty"`
-	Panes     []PaneConfig   `yaml:"panes,omitempty"`
+	Name    string         `yaml:"name"`
+	Windows []WindowConfig `yaml:"windows,omitempty"`
+	Panes   []PaneConfig   `yaml:"panes,omitempty"`
 }
 
 type configFile struct {
@@ -108,9 +109,6 @@ func RestoreAll() error {
 
 func createSession(name string, cfg SessionConfig) error {
 	args := []string{"new-session", "-d", "-s", name}
-	if cfg.Directory != "" {
-		args = append(args, "-c", expandHome(cfg.Directory))
-	}
 
 	if len(cfg.Windows) > 0 {
 		args = append(args, "-n", cfg.Windows[0].Name)
@@ -124,8 +122,6 @@ func createSession(name string, cfg SessionConfig) error {
 		createWindowPanes(name, 0, cfg.Windows[0])
 	} else if len(cfg.Panes) > 0 {
 		createWindowPanes(name, 0, WindowConfig{Panes: cfg.Panes})
-	} else if cfg.Command != "" {
-		exec.Command("tmux", "send-keys", "-t", name+":0", cfg.Command, "Enter").Run()
 	}
 
 	for i := 1; i < len(cfg.Windows); i++ {
@@ -141,25 +137,46 @@ func createWindowPanes(session string, windowIdx int, w WindowConfig) {
 	target := fmt.Sprintf("%s:%d", session, windowIdx)
 
 	if len(w.Panes) > 0 {
-		if w.Panes[0].Command != "" {
-			exec.Command("tmux", "send-keys", "-t", target+".0", w.Panes[0].Command, "Enter").Run()
-		}
-		for i := 1; i < len(w.Panes); i++ {
-			flag := "-v"
-			if w.Panes[i].Direction == "right" {
-				flag = "-h"
+		for i, pane := range w.Panes {
+			if i > 0 {
+				flag := "-v"
+				if pane.Direction == "right" {
+					flag = "-h"
+				}
+				exec.Command("tmux", "split-window", "-t", target, flag).Run()
 			}
-			exec.Command("tmux", "split-window", "-t", target, flag).Run()
-			if w.Panes[i].Command != "" {
-				exec.Command("tmux", "send-keys", "-t", target, w.Panes[i].Command, "Enter").Run()
+			paneTarget := fmt.Sprintf("%s.%d", target, i)
+			if pane.Name != "" {
+				exec.Command("tmux", "select-pane", "-t", paneTarget, "-T", pane.Name).Run()
+			}
+			cmd := paneCommand(pane)
+			if cmd != "" {
+				exec.Command("tmux", "send-keys", "-t", paneTarget, cmd, "Enter").Run()
 			}
 		}
 		return
 	}
 
 	if w.Command != "" {
-		exec.Command("tmux", "send-keys", "-t", target+".0", w.Command, "Enter").Run()
+		cmd := w.Command
+		if w.Directory != "" {
+			cmd = fmt.Sprintf("cd %s && %s", expandHome(w.Directory), cmd)
+		}
+		exec.Command("tmux", "send-keys", "-t", target+".0", cmd, "Enter").Run()
 	}
+}
+
+func paneCommand(p PaneConfig) string {
+	cmd := p.Command
+	if p.Directory != "" {
+		cd := fmt.Sprintf("cd %s", expandHome(p.Directory))
+		if cmd != "" {
+			cmd = fmt.Sprintf("%s && %s", cd, cmd)
+		} else {
+			cmd = cd
+		}
+	}
+	return cmd
 }
 
 func expandHome(path string) string {
