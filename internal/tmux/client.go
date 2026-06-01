@@ -14,6 +14,10 @@ func IsAvailable() bool {
 }
 
 func IsInsideTmux() bool {
+	if os.Getenv("TMUX") != "" {
+		return true
+	}
+
 	tty, err := os.Readlink("/proc/self/fd/0")
 	if err != nil {
 		return false
@@ -34,29 +38,43 @@ func IsInsideTmux() bool {
 }
 
 func ListSessions() ([]Session, error) {
-	cmd := exec.Command("tmux", "list-sessions", "-F", "#{session_name}:#{session_windows}:#{?session_attached,1,0}")
+	cmd := exec.Command("tmux", "list-sessions", "-F", "#{session_name}:#{session_windows}")
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("tmux list-sessions failed: %w", err)
 	}
+
+	current := CurrentSession()
 
 	var sessions []Session
 	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
 		if line == "" {
 			continue
 		}
-		parts := strings.SplitN(line, ":", 3)
-		if len(parts) != 3 {
+		parts := strings.SplitN(line, ":", 2)
+		if len(parts) != 2 {
 			continue
 		}
 		windows, _ := strconv.Atoi(parts[1])
 		sessions = append(sessions, Session{
 			Name:     parts[0],
 			Windows:  windows,
-			Attached: parts[2] == "1",
+			Attached: parts[0] == current,
 		})
 	}
 	return sessions, nil
+}
+
+func CurrentSession() string {
+	if os.Getenv("TMUX") == "" {
+		return ""
+	}
+	cmd := exec.Command("tmux", "display-message", "-p", "#{client_session}")
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
 }
 
 func SwitchSession(name string) error {
