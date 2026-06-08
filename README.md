@@ -20,6 +20,12 @@ Create, switch, and kill sessions with `tm`. Define your workspace in YAML and r
 
 ---
 
+## 📸 Screenshot
+
+![TUI Screenshot](docs/tui-screenshot.png)
+
+---
+
 ## 📦 Installation
 
 ```bash
