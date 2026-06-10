@@ -11,25 +11,12 @@ import (
 	"github.com/dohwi/tmux-manager/internal/tmux"
 )
 
-func newModelForTest(sessions []tmux.Session, managed map[string]bool, avail bool) model {
+func newModelForTest(sessions []tmux.Session) model {
 	ti := newStyledTextInput()
-
-	if !avail {
-		return model{
-			list:        list.New([]list.Item{}, newDelegate(), 0, 0),
-			textInput:   ti,
-			statusMsg:   "tmux not found. Install tmux first.",
-			statusIsErr: true,
-		}
-	}
 
 	items := make([]list.Item, len(sessions))
 	for i, s := range sessions {
-		m := false
-		if managed != nil {
-			m = managed[s.Name]
-		}
-		items[i] = sessionItem{session: s, managed: m}
+		items[i] = sessionItem{session: s, managed: false}
 	}
 
 	l := list.New(items, newDelegate(), 0, 0)
@@ -42,7 +29,7 @@ func newModelForTest(sessions []tmux.Session, managed map[string]bool, avail boo
 	return model{
 		list:         l,
 		textInput:    ti,
-		managedNames: managed,
+		managedNames: nil,
 		width:        80,
 		height:       24,
 	}
@@ -57,7 +44,7 @@ func mockTmuxExec(t *testing.T, handler func(cmd string, args []string) *exec.Cm
 
 func TestHandleBrowseKeyEnter_AttachesSelected(t *testing.T) {
 	defer tmux.OverrideIsAvailable(func() bool { return true })()
-	m := newModelForTest([]tmux.Session{{Name: "dev", Windows: 2}}, nil, true)
+	m := newModelForTest([]tmux.Session{{Name: "dev", Windows: 2}})
 	m.width = 80
 	m.height = 24
 
@@ -72,7 +59,7 @@ func TestHandleBrowseKeyEnter_AttachesSelected(t *testing.T) {
 
 func TestHandleBrowseKeyEnter_EmptyList(t *testing.T) {
 	defer tmux.OverrideIsAvailable(func() bool { return true })()
-	m := newModelForTest(nil, nil, true)
+	m := newModelForTest(nil)
 
 	m2, _ := m.handleBrowseKey(tea.KeyMsg{Type: tea.KeyEnter})
 	if m2.(model).attachTarget != "" {
@@ -82,7 +69,7 @@ func TestHandleBrowseKeyEnter_EmptyList(t *testing.T) {
 
 func TestHandleBrowseKeyCtrlC_Quits(t *testing.T) {
 	defer tmux.OverrideIsAvailable(func() bool { return true })()
-	m := newModelForTest(nil, nil, true)
+	m := newModelForTest(nil)
 
 	_, cmd := m.handleBrowseKey(tea.KeyMsg{Type: tea.KeyCtrlC})
 	if cmd == nil || cmd() != tea.Quit() {
@@ -92,7 +79,7 @@ func TestHandleBrowseKeyCtrlC_Quits(t *testing.T) {
 
 func TestHandleBrowseKeyCtrlN_EntersInputMode(t *testing.T) {
 	defer tmux.OverrideIsAvailable(func() bool { return true })()
-	m := newModelForTest(nil, nil, true)
+	m := newModelForTest(nil)
 
 	m2, _ := m.handleBrowseKey(tea.KeyMsg{Type: tea.KeyCtrlN})
 	if m2.(model).inputMode != inputCreate {
@@ -102,7 +89,7 @@ func TestHandleBrowseKeyCtrlN_EntersInputMode(t *testing.T) {
 
 func TestHandleBrowseKeyCtrlR_EntersRenameMode(t *testing.T) {
 	defer tmux.OverrideIsAvailable(func() bool { return true })()
-	m := newModelForTest([]tmux.Session{{Name: "dev", Windows: 3}}, nil, true)
+	m := newModelForTest([]tmux.Session{{Name: "dev", Windows: 3}})
 
 	m2, _ := m.handleBrowseKey(tea.KeyMsg{Type: tea.KeyCtrlR})
 	if m2.(model).inputMode != inputRename {
@@ -115,7 +102,7 @@ func TestHandleBrowseKeyCtrlR_EntersRenameMode(t *testing.T) {
 
 func TestHandleBrowseKeyCtrlR_NothingSelected(t *testing.T) {
 	defer tmux.OverrideIsAvailable(func() bool { return true })()
-	m := newModelForTest(nil, nil, true)
+	m := newModelForTest(nil)
 
 	m2, _ := m.handleBrowseKey(tea.KeyMsg{Type: tea.KeyCtrlR})
 	if m2.(model).inputMode != inputNone {
@@ -134,7 +121,7 @@ func TestHandleBrowseKeyCtrlD_KillsSession(t *testing.T) {
 	})()
 
 	defer tmux.OverrideCurrentSession(func() string { return "" })()
-	m := newModelForTest([]tmux.Session{{Name: "dev", Windows: 2}}, nil, true)
+	m := newModelForTest([]tmux.Session{{Name: "dev", Windows: 2}})
 
 	m.handleBrowseKey(tea.KeyMsg{Type: tea.KeyCtrlD})
 	if killed != "dev" {
@@ -149,7 +136,7 @@ func TestHandleBrowseKeyCtrlD_HandlesError(t *testing.T) {
 	})()
 
 	defer tmux.OverrideCurrentSession(func() string { return "" })()
-	m := newModelForTest([]tmux.Session{{Name: "dev", Windows: 2}}, nil, true)
+	m := newModelForTest([]tmux.Session{{Name: "dev", Windows: 2}})
 
 	m2, _ := m.handleBrowseKey(tea.KeyMsg{Type: tea.KeyCtrlD})
 	if !m2.(model).statusIsErr {
@@ -167,7 +154,7 @@ func TestHandleInputKeyEnter_CreatesSession(t *testing.T) {
 		return exec.Command("/bin/true")
 	})()
 
-	m := newModelForTest(nil, nil, true)
+	m := newModelForTest(nil)
 	m.inputMode = inputCreate
 	m.textInput.SetValue("newsession")
 
@@ -186,7 +173,7 @@ func TestHandleInputKeyEnter_CreateFails(t *testing.T) {
 		return exec.Command("/bin/false")
 	})()
 
-	m := newModelForTest(nil, nil, true)
+	m := newModelForTest(nil)
 	m.inputMode = inputCreate
 	m.textInput.SetValue("bad")
 
@@ -207,7 +194,7 @@ func TestHandleInputKeyEnter_RenamesSession(t *testing.T) {
 		return exec.Command("/bin/true")
 	})()
 
-	m := newModelForTest([]tmux.Session{{Name: "old", Windows: 1}}, nil, true)
+	m := newModelForTest([]tmux.Session{{Name: "old", Windows: 1}})
 	m.inputMode = inputRename
 	m.renameTarget = "old"
 	m.textInput.SetValue("new")
@@ -231,7 +218,7 @@ func TestHandleInputKeyEnter_RenameToSame(t *testing.T) {
 		return exec.Command("/bin/true")
 	})()
 
-	m := newModelForTest([]tmux.Session{{Name: "same", Windows: 1}}, nil, true)
+	m := newModelForTest([]tmux.Session{{Name: "same", Windows: 1}})
 	m.inputMode = inputRename
 	m.renameTarget = "same"
 	m.textInput.SetValue("same")
@@ -244,7 +231,7 @@ func TestHandleInputKeyEnter_RenameToSame(t *testing.T) {
 
 func TestHandleInputKeyEsc_Cancels(t *testing.T) {
 	defer tmux.OverrideIsAvailable(func() bool { return true })()
-	m := newModelForTest(nil, nil, true)
+	m := newModelForTest(nil)
 	m.inputMode = inputCreate
 	m.textInput.SetValue("partial")
 
@@ -256,7 +243,7 @@ func TestHandleInputKeyEsc_Cancels(t *testing.T) {
 
 func TestHandleInputKeyEnter_EmptyName(t *testing.T) {
 	defer tmux.OverrideIsAvailable(func() bool { return true })()
-	m := newModelForTest(nil, nil, true)
+	m := newModelForTest(nil)
 	m.inputMode = inputCreate
 	m.textInput.SetValue("")
 
@@ -272,7 +259,7 @@ func TestRefreshSessions_HandlesError(t *testing.T) {
 		return exec.Command("/bin/false")
 	})()
 
-	m := newModelForTest([]tmux.Session{{Name: "dev", Windows: 1}}, nil, true)
+	m := newModelForTest([]tmux.Session{{Name: "dev", Windows: 1}})
 	m.refreshSessions()
 	if !m.statusIsErr {
 		t.Error("expected statusIsErr after refresh failure")

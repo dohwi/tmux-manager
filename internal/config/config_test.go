@@ -198,7 +198,7 @@ func TestRestoreAllEmptyConfigDir(t *testing.T) {
 	if err := RestoreAll(); err != nil {
 		t.Fatal(err)
 	}
-	w.Close()
+	_ = w.Close()
 
 	var buf bytes.Buffer
 	_, _ = io.Copy(&buf, r)
