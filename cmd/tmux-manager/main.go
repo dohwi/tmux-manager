@@ -85,7 +85,7 @@ func runSetup() {
 	binDir := filepath.Join(home, ".local", "bin")
 	symlinkPath := filepath.Join(binDir, "tm")
 
-	if err := os.MkdirAll(binDir, 0755); err != nil {
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
 		fmt.Fprintf(os.Stderr, "mkdir error: %v\n", err)
 		os.Exit(1)
 	}
@@ -101,7 +101,7 @@ func runSetup() {
 	}
 
 	configDir, _ := config.ConfigDir()
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		fmt.Fprintf(os.Stderr, "mkdir error: %v\n", err)
 		os.Exit(1)
 	}
@@ -115,7 +115,7 @@ func runSetup() {
 	}
 
 	zshrc := filepath.Join(home, ".zshrc")
-	ensureLine(zshrc, "alias tm='nocorrect tm'", "# tmux-manager")
+	_ = ensureLine(zshrc, "alias tm='nocorrect tm'", "# tmux-manager")
 	fmt.Println("registered: nocorrect alias in ~/.zshrc")
 
 	fmt.Println("\ntmux-manager setup complete.")
@@ -157,7 +157,7 @@ func ensureLine(path, line, marker string) error {
 	}
 
 	entry := fmt.Sprintf("\n%s\n%s\n", marker, line)
-	if err := os.WriteFile(path, append(data, []byte(entry)...), 0644); err != nil {
+	if err := os.WriteFile(path, append(data, []byte(entry)...), 0o644); err != nil {
 		return err
 	}
 	return nil

@@ -10,8 +10,10 @@ import (
 	"time"
 )
 
-var modulePath = "github.com/dohwi/tmux-manager"
-var cmdPath = modulePath + "/cmd/tmux-manager"
+var (
+	modulePath = "github.com/dohwi/tmux-manager"
+	cmdPath    = modulePath + "/cmd/tmux-manager"
+)
 
 func CheckUpdate(currentVersion string) (bool, error) {
 	if currentVersion == "" {
@@ -58,11 +60,11 @@ func ShouldCheck() bool {
 		return true
 	}
 	var ts int64
-	fmt.Sscanf(string(data), "%d", &ts)
+	_, _ = fmt.Sscanf(string(data), "%d", &ts)
 	return time.Since(time.Unix(ts, 0)) > time.Hour
 }
 
 func MarkChecked() {
-	os.MkdirAll(filepath.Dir(lastCheckPath()), 0755)
-	os.WriteFile(lastCheckPath(), []byte(fmt.Sprintf("%d", time.Now().Unix())), 0644)
+	_ = os.MkdirAll(filepath.Dir(lastCheckPath()), 0o755)
+	_ = os.WriteFile(lastCheckPath(), []byte(fmt.Sprintf("%d", time.Now().Unix())), 0o644)
 }

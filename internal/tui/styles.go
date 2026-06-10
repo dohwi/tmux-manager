@@ -7,7 +7,6 @@ import (
 )
 
 var (
-	bg      = lipgloss.Color("#282a36")
 	current = lipgloss.Color("#44475a")
 	fg      = lipgloss.Color("#f8f8f2")
 	comment = lipgloss.Color("#6272a4")
@@ -77,7 +76,6 @@ var (
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(pink).
 				Padding(0, 1)
-
 )
 
 func newDelegate() list.DefaultDelegate {

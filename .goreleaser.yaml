@@ -1,0 +1,32 @@
+version: 2
+
+builds:
+  - main: ./cmd/tmux-manager
+    binary: tmux-manager
+    ldflags:
+      - -s -w -X main.version={{ .Commit }}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    files:
+      - README.md
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^ui:'
