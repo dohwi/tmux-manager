@@ -1,6 +1,7 @@
 package update
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,70 +10,38 @@ import (
 	"time"
 )
 
-func FindRepoDir() (string, error) {
-	exe, err := os.Executable()
+var modulePath = "github.com/dohwi/tmux-manager"
+var cmdPath = modulePath + "/cmd/tmux-manager"
+
+func CheckUpdate(currentVersion string) (bool, error) {
+	if currentVersion == "" {
+		return false, nil
+	}
+
+	out, err := exec.Command("go", "list", "-m", "-json", modulePath+"@main").Output()
 	if err != nil {
-		return "", err
+		return false, fmt.Errorf("go list: %w", err)
 	}
-	real, err := filepath.EvalSymlinks(exe)
-	if err != nil {
-		return "", err
-	}
-	dir := filepath.Dir(real)
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			return dir, nil
+
+	var info struct {
+		Origin struct {
+			Hash string
 		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return "", fmt.Errorf("go.mod not found")
-		}
-		dir = parent
 	}
+	if err := json.Unmarshal(out, &info); err != nil {
+		return false, fmt.Errorf("parse go list output: %w", err)
+	}
+
+	return info.Origin.Hash != currentVersion, nil
 }
 
-func CheckUpdate(repoDir string) (bool, error) {
-	cmd := exec.Command("git", "-C", repoDir, "fetch", "origin")
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return false, fmt.Errorf("git fetch: %s: %w", strings.TrimSpace(string(out)), err)
-	}
-
-	localRaw, err := exec.Command("git", "-C", repoDir, "rev-parse", "HEAD").Output()
+func DoUpdate() error {
+	cmd := exec.Command("go", "install", cmdPath+"@main")
+	cmd.Env = append(os.Environ(), "GOPROXY=direct")
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return false, err
+		return fmt.Errorf("go install: %s", strings.TrimSpace(string(out)))
 	}
-	remoteRaw, err := exec.Command("git", "-C", repoDir, "rev-parse", "origin/main").Output()
-	if err != nil {
-		return false, err
-	}
-
-	local := strings.TrimSpace(string(localRaw))
-	remote := strings.TrimSpace(string(remoteRaw))
-
-	return local != remote, nil
-}
-
-func Update(repoDir string) error {
-	fetchCmd := exec.Command("git", "-C", repoDir, "fetch", "origin")
-	if out, err := fetchCmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("git fetch: %s: %w", strings.TrimSpace(string(out)), err)
-	}
-
-	checkoutCmd := exec.Command("git", "-C", repoDir, "checkout", "-B", "main", "origin/main")
-	checkoutCmd.Stdout = os.Stdout
-	checkoutCmd.Stderr = os.Stderr
-	if err := checkoutCmd.Run(); err != nil {
-		return fmt.Errorf("git checkout: %w", err)
-	}
-
-	buildCmd := exec.Command("go", "build", "-o", filepath.Join(repoDir, "tmux-manager"), ".")
-	buildCmd.Dir = repoDir
-	buildCmd.Stdout = os.Stdout
-	buildCmd.Stderr = os.Stderr
-	if err := buildCmd.Run(); err != nil {
-		return fmt.Errorf("go build: %w", err)
-	}
-
 	return nil
 }
 
