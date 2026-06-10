@@ -1,8 +1,11 @@
 package config
 
 import (
+	"bytes"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -175,6 +178,32 @@ func TestRestoreAllSkipsExisting(t *testing.T) {
 	}
 	if len(*created) != 1 || (*created)[0] != "fresh" {
 		t.Errorf("expected only 'fresh' created, got %v", *created)
+	}
+}
+
+func TestRestoreAllEmptyConfigDir(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+
+	cfgDir := filepath.Join(dir, ".config", "tmux-manager", "sessions")
+	if err := os.MkdirAll(cfgDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+	defer func() { os.Stderr = oldStderr }()
+
+	if err := RestoreAll(); err != nil {
+		t.Fatal(err)
+	}
+	w.Close()
+
+	var buf bytes.Buffer
+	_, _ = io.Copy(&buf, r)
+	if !strings.Contains(buf.String(), "no sessions defined") {
+		t.Errorf("expected hint message, got %q", buf.String())
 	}
 }
 
