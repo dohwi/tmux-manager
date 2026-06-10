@@ -11,8 +11,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"tmux-manager/internal/config"
-	"tmux-manager/internal/tmux"
+	"github.com/dohwi/tmux-manager/internal/config"
+	"github.com/dohwi/tmux-manager/internal/tmux"
 )
 
 type inputMode int
