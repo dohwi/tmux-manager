@@ -9,7 +9,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"tmux-manager/internal/tmux"
+	"github.com/dohwi/tmux-manager/internal/tmux"
 )
 
 type PaneConfig struct {

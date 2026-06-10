@@ -1,4 +1,4 @@
-module tmux-manager
+module github.com/dohwi/tmux-manager
 
 go 1.21
 

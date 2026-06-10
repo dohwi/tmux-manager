@@ -7,11 +7,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"tmux-manager/internal/config"
-	"tmux-manager/internal/tmux"
-	"tmux-manager/internal/tui"
-	"tmux-manager/internal/update"
+	"github.com/dohwi/tmux-manager/internal/config"
+	"github.com/dohwi/tmux-manager/internal/tmux"
+	"github.com/dohwi/tmux-manager/internal/tui"
+	"github.com/dohwi/tmux-manager/internal/update"
 )
+
+var version string
 
 func main() {
 	if len(os.Args) < 2 {
@@ -121,31 +123,11 @@ func runSetup() {
 }
 
 func runUpdate() {
-	repoDir, err := update.FindRepoDir()
-	if err != nil {
+	fmt.Fprintln(os.Stderr, "Updating via go install...")
+	if err := update.DoUpdate(); err != nil {
 		fmt.Fprintf(os.Stderr, "update error: %v\n", err)
 		os.Exit(1)
 	}
-
-	needs, err := update.CheckUpdate(repoDir)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "check error: %v\n", err)
-		os.Exit(1)
-	}
-
-	if !needs {
-		fmt.Println("Already up to date.")
-		update.MarkChecked()
-		return
-	}
-
-	fmt.Println("Updating...")
-	if err := update.Update(repoDir); err != nil {
-		fmt.Fprintf(os.Stderr, "update error: %v\n", err)
-		os.Exit(1)
-	}
-
-	update.MarkChecked()
 	fmt.Println("Updated successfully. Run 'tm' to start.")
 }
 
@@ -154,18 +136,13 @@ func checkAutoUpdate() bool {
 		return false
 	}
 
-	repoDir, err := update.FindRepoDir()
-	if err != nil {
-		return false
-	}
-
-	needs, err := update.CheckUpdate(repoDir)
+	available, err := update.CheckUpdate(version)
 	update.MarkChecked()
 	if err != nil {
 		return false
 	}
 
-	return needs
+	return available
 }
 
 func ensureLine(path, line, marker string) error {
