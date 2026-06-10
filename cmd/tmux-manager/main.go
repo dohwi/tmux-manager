@@ -103,5 +103,3 @@ func checkAutoUpdate() bool {
 
 	return available
 }
-
-
