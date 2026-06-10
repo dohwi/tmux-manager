@@ -32,7 +32,7 @@ Create, switch, and kill sessions with `tm`. Define your workspace in YAML and r
 curl -fsSL https://raw.githubusercontent.com/dohwi/tmux-manager/main/install.sh | bash
 ```
 
-This single command detects Go, installs it if missing, runs `go install @main`, and executes setup.
+This single command detects Go, installs it if missing, runs `go install` `@main`, and executes setup.
 
 `setup` handles everything automatically:
 
