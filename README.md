@@ -29,11 +29,10 @@ Create, switch, and kill sessions with `tm`. Define your workspace in YAML and r
 ## 📦 Installation
 
 ```bash
-git clone https://github.com/dohwi/tmux-manager.git
-cd tmux-manager
-go build -o tmux-manager .
-./tmux-manager setup
+curl -fsSL https://raw.githubusercontent.com/dohwi/tmux-manager/main/install.sh | bash
 ```
+
+This single command detects Go, installs it if missing, clones the repo, builds, and runs setup.
 
 `setup` handles everything automatically:
 
@@ -44,11 +43,7 @@ go build -o tmux-manager .
 | `~/.profile` | Register `tm restore` for auto-restore on boot |
 | `~/.config/tmux-manager/sessions/` | Create config directory |
 
-To update, just rebuild — the symlink automatically points to the latest binary.
-
-```bash
-go build -o tmux-manager .
-```
+To update, run `tm update` from any terminal.
 
 ---
 
