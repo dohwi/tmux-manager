@@ -22,3 +22,15 @@ func captureExec(t *testing.T) (createdNames *[]string, restore func()) {
 	}
 	return created, func() { execCommand = orig }
 }
+
+func failOnCmd(t *testing.T, subcmd string) func() {
+	t.Helper()
+	orig := execCommand
+	execCommand = func(name string, args ...string) *exec.Cmd {
+		if name == "tmux" && len(args) > 0 && args[0] == subcmd {
+			return exec.Command("/bin/false")
+		}
+		return exec.Command("/bin/true")
+	}
+	return func() { execCommand = orig }
+}

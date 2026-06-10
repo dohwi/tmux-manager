@@ -207,6 +207,48 @@ func TestRestoreAllEmptyConfigDir(t *testing.T) {
 	}
 }
 
+func TestCreateSessionSplitWindowError(t *testing.T) {
+	defer failOnCmd(t, "split-window")()
+	cfg := SessionConfig{Panes: []PaneConfig{{Command: "nvim"}, {Command: "ls", Direction: "right"}}}
+	err := createSession("test", cfg)
+	if err == nil || !contains(err.Error(), "split-window") {
+		t.Errorf("expected split-window error, got: %v", err)
+	}
+}
+
+func TestCreateSessionSendKeysError(t *testing.T) {
+	defer failOnCmd(t, "send-keys")()
+	cfg := SessionConfig{Panes: []PaneConfig{{Command: "nvim"}}}
+	err := createSession("test", cfg)
+	if err == nil || !contains(err.Error(), "send-keys") {
+		t.Errorf("expected send-keys error, got: %v", err)
+	}
+}
+
+func TestCreateSessionNewWindowError(t *testing.T) {
+	defer failOnCmd(t, "new-window")()
+	cfg := SessionConfig{
+		Name: "test",
+		Windows: []WindowConfig{
+			{Name: "win1"},
+			{Name: "win2"},
+		},
+	}
+	err := createSession("test", cfg)
+	if err == nil || !contains(err.Error(), "new-window") {
+		t.Errorf("expected new-window error, got: %v", err)
+	}
+}
+
+func TestCreateSessionSelectPaneError(t *testing.T) {
+	defer failOnCmd(t, "select-pane")()
+	cfg := SessionConfig{Panes: []PaneConfig{{Name: "title", Command: "nvim"}}}
+	err := createSession("test", cfg)
+	if err == nil || !contains(err.Error(), "select-pane") {
+		t.Errorf("expected select-pane error, got: %v", err)
+	}
+}
+
 func writeYAML(t *testing.T, dir, name, content string) {
 	t.Helper()
 	if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
