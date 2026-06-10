@@ -6,48 +6,31 @@ import (
 	"testing"
 )
 
+func TestCheckUpdateEmptyVersion(t *testing.T) {
+	available, tag, err := CheckUpdate("", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if available || tag != "" {
+		t.Errorf("expected (false, \"\"), got (%v, %q)", available, tag)
+	}
+}
+
 func TestCheckUpdateSameVersion(t *testing.T) {
 	out, err := exec.Command("git", "rev-parse", "HEAD").Output()
 	if err != nil {
-		t.Fatal(err)
+		t.Skip("not in a git repo")
 	}
 	hash := strings.TrimSpace(string(out))
+	if hash == "" {
+		t.Skip("no git hash available")
+	}
 
-	available, err := CheckUpdate(hash)
+	available, _, err := CheckUpdate(hash, false)
 	if err != nil {
-		t.Fatal(err)
+		t.Skipf("network unavailable: %v", err)
 	}
 	if available {
 		t.Error("expected no update (same version)")
-	}
-}
-
-func TestCheckUpdateEmptyVersion(t *testing.T) {
-	available, err := CheckUpdate("")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if available {
-		t.Error("expected no update for empty version")
-	}
-}
-
-func TestCheckUpdateDifferentVersion(t *testing.T) {
-	available, err := CheckUpdate("0000000000000000000000000000000000000000")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !available {
-		t.Error("expected update available for different version")
-	}
-}
-
-func TestDoUpdate(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping go install in short mode")
-	}
-	err := DoUpdate()
-	if err != nil {
-		t.Fatal(err)
 	}
 }

@@ -123,8 +123,14 @@ func runSetup() {
 }
 
 func runUpdate() {
-	fmt.Fprintln(os.Stderr, "Updating via go install...")
-	if err := update.DoUpdate(); err != nil {
+	fmt.Fprintln(os.Stderr, "Resolving latest release...")
+	_, latest, err := update.CheckUpdate(version, false)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "update check error: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Fprintf(os.Stderr, "Installing %s via go install...\n", latest)
+	if err := update.DoUpdate(latest); err != nil {
 		fmt.Fprintf(os.Stderr, "update error: %v\n", err)
 		os.Exit(1)
 	}
@@ -136,7 +142,7 @@ func checkAutoUpdate() bool {
 		return false
 	}
 
-	available, err := update.CheckUpdate(version)
+	available, _, err := update.CheckUpdate(version, false)
 	update.MarkChecked()
 	if err != nil {
 		return false

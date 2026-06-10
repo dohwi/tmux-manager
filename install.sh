@@ -54,8 +54,13 @@ echo ""
 info "tmux-manager installer"
 install_go
 
-info "go install github.com/${REPO}/cmd/tmux-manager@main"
-GOBIN="$BIN_DIR" GOPROXY=direct go install "github.com/${REPO}/cmd/tmux-manager@main"
+info "Resolving latest release..."
+LATEST_TAG=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
+  | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')
+[ -z "$LATEST_TAG" ] && err "Cannot detect latest release tag"
+
+info "go install github.com/${REPO}/cmd/tmux-manager@${LATEST_TAG}"
+GOBIN="$BIN_DIR" go install "github.com/${REPO}/cmd/tmux-manager@${LATEST_TAG}"
 
 info "Running setup..."
 "$BIN" setup
