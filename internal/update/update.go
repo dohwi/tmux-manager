@@ -18,7 +18,9 @@ func CheckUpdate(currentVersion string) (bool, error) {
 		return false, nil
 	}
 
-	out, err := exec.Command("go", "list", "-m", "-json", modulePath+"@main").Output()
+	cmd := exec.Command("go", "list", "-m", "-json", modulePath+"@main")
+	cmd.Env = append(os.Environ(), "GOPROXY=direct")
+	out, err := cmd.Output()
 	if err != nil {
 		return false, fmt.Errorf("go list: %w", err)
 	}
