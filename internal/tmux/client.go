@@ -8,6 +8,10 @@ import (
 	"strings"
 )
 
+var execCommand = exec.Command
+
+var currentSessionFn = CurrentSession
+
 func IsAvailable() bool {
 	_, err := exec.LookPath("tmux")
 	return err == nil
@@ -23,7 +27,7 @@ func IsInsideTmux() bool {
 		return false
 	}
 
-	cmd := exec.Command("tmux", "list-clients", "-F", "#{client_tty}")
+	cmd := execCommand("tmux", "list-clients", "-F", "#{client_tty}")
 	out, err := cmd.Output()
 	if err != nil {
 		return false
@@ -38,38 +42,46 @@ func IsInsideTmux() bool {
 }
 
 func ListSessions() ([]Session, error) {
-	cmd := exec.Command("tmux", "list-sessions", "-F", "#{session_name}:#{session_windows}")
+	cmd := execCommand("tmux", "list-sessions", "-F", "#{session_name}:#{session_windows}")
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("tmux list-sessions failed: %w", err)
 	}
 
-	current := CurrentSession()
+	current := currentSessionFn()
 
 	var sessions []Session
 	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
-		if line == "" {
+		s, ok := parseSessionLine(line, current)
+		if !ok {
 			continue
 		}
-		parts := strings.SplitN(line, ":", 2)
-		if len(parts) != 2 {
-			continue
-		}
-		windows, _ := strconv.Atoi(parts[1])
-		sessions = append(sessions, Session{
-			Name:     parts[0],
-			Windows:  windows,
-			Attached: parts[0] == current,
-		})
+		sessions = append(sessions, s)
 	}
 	return sessions, nil
+}
+
+func parseSessionLine(line, current string) (Session, bool) {
+	if line == "" {
+		return Session{}, false
+	}
+	parts := strings.SplitN(line, ":", 2)
+	if len(parts) != 2 {
+		return Session{}, false
+	}
+	windows, _ := strconv.Atoi(parts[1])
+	return Session{
+		Name:     parts[0],
+		Windows:  windows,
+		Attached: parts[0] == current,
+	}, true
 }
 
 func CurrentSession() string {
 	if os.Getenv("TMUX") == "" {
 		return ""
 	}
-	cmd := exec.Command("tmux", "display-message", "-p", "#{client_session}")
+	cmd := execCommand("tmux", "display-message", "-p", "#{client_session}")
 	out, err := cmd.Output()
 	if err != nil {
 		return ""
@@ -78,7 +90,7 @@ func CurrentSession() string {
 }
 
 func SwitchSession(name string) error {
-	cmd := exec.Command("tmux", "switch-client", "-t", name)
+	cmd := execCommand("tmux", "switch-client", "-t", name)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("%s", strings.TrimSpace(string(out)))
@@ -87,22 +99,21 @@ func SwitchSession(name string) error {
 }
 
 func NewDetached(name string) error {
-	return exec.Command("tmux", "new-session", "-d", "-s", name).Run()
+	return execCommand("tmux", "new-session", "-d", "-s", name).Run()
 }
 
 func NewDetachedWithDir(name, dir string) error {
-	return exec.Command("tmux", "new-session", "-d", "-s", name, "-c", dir).Run()
+	return execCommand("tmux", "new-session", "-d", "-s", name, "-c", dir).Run()
 }
 
 func Kill(name string) error {
-	return exec.Command("tmux", "kill-session", "-t", name).Run()
+	return execCommand("tmux", "kill-session", "-t", name).Run()
 }
 
 func RenameSession(oldName, newName string) error {
-	return exec.Command("tmux", "rename-session", "-t", oldName, newName).Run()
+	return execCommand("tmux", "rename-session", "-t", oldName, newName).Run()
 }
 
 func HasSession(name string) bool {
-	err := exec.Command("tmux", "has-session", "-t", name).Run()
-	return err == nil
+	return execCommand("tmux", "has-session", "-t", name).Run() == nil
 }

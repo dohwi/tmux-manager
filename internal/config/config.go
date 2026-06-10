@@ -36,20 +36,14 @@ type configFile struct {
 	Sessions []SessionConfig `yaml:"sessions"`
 }
 
-func ConfigDir() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(home, ".config", "tmux-manager", "sessions"), nil
-}
+// execCommand is overridable for tests; same shape as exec.Command.
+var execCommand = exec.Command
 
-func LoadAll() (map[string]SessionConfig, error) {
-	dir, err := ConfigDir()
-	if err != nil {
-		return nil, err
-	}
+// hasSessionFn is overridable for tests.
+var hasSessionFn = tmux.HasSession
 
+// LoadDir reads YAML files from the given directory and returns parsed configs.
+func LoadDir(dir string) (map[string]SessionConfig, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -88,6 +82,22 @@ func LoadAll() (map[string]SessionConfig, error) {
 	return configs, nil
 }
 
+func ConfigDir() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".config", "tmux-manager", "sessions"), nil
+}
+
+func LoadAll() (map[string]SessionConfig, error) {
+	dir, err := ConfigDir()
+	if err != nil {
+		return nil, err
+	}
+	return LoadDir(dir)
+}
+
 func RestoreAll() error {
 	configs, err := LoadAll()
 	if err != nil {
@@ -95,7 +105,7 @@ func RestoreAll() error {
 	}
 
 	for name, cfg := range configs {
-		if tmux.HasSession(name) {
+		if hasSessionFn(name) {
 			continue
 		}
 		if err := createSession(name, cfg); err != nil {
@@ -114,7 +124,7 @@ func createSession(name string, cfg SessionConfig) error {
 		args = append(args, "-n", cfg.Windows[0].Name)
 	}
 
-	if err := exec.Command("tmux", args...).Run(); err != nil {
+	if err := execCommand("tmux", args...).Run(); err != nil {
 		return err
 	}
 
@@ -126,7 +136,7 @@ func createSession(name string, cfg SessionConfig) error {
 
 	for i := 1; i < len(cfg.Windows); i++ {
 		w := cfg.Windows[i]
-		_ = exec.Command("tmux", "new-window", "-t", name, "-n", w.Name).Run()
+		_ = execCommand("tmux", "new-window", "-t", name, "-n", w.Name).Run()
 		createWindowPanes(name, i, w)
 	}
 
@@ -143,15 +153,15 @@ func createWindowPanes(session string, windowIdx int, w WindowConfig) {
 				if pane.Direction == "right" {
 					flag = "-h"
 				}
-				_ = exec.Command("tmux", "split-window", "-t", target, flag).Run()
+				_ = execCommand("tmux", "split-window", "-t", target, flag).Run()
 			}
 			paneTarget := fmt.Sprintf("%s.%d", target, i)
 			if pane.Name != "" {
-				_ = exec.Command("tmux", "select-pane", "-t", paneTarget, "-T", pane.Name).Run()
+				_ = execCommand("tmux", "select-pane", "-t", paneTarget, "-T", pane.Name).Run()
 			}
 			cmd := paneCommand(pane)
 			if cmd != "" {
-				_ = exec.Command("tmux", "send-keys", "-t", paneTarget, cmd, "Enter").Run()
+				_ = execCommand("tmux", "send-keys", "-t", paneTarget, cmd, "Enter").Run()
 			}
 		}
 		return
@@ -162,7 +172,7 @@ func createWindowPanes(session string, windowIdx int, w WindowConfig) {
 		if w.Directory != "" {
 			cmd = fmt.Sprintf("cd %s && %s", expandHome(w.Directory), cmd)
 		}
-		_ = exec.Command("tmux", "send-keys", "-t", target+".0", cmd, "Enter").Run()
+		_ = execCommand("tmux", "send-keys", "-t", target+".0", cmd, "Enter").Run()
 	}
 }
 

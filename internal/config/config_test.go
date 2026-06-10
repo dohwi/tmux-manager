@@ -1,0 +1,195 @@
+package config
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+func TestExpandHome(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+
+	cases := []struct {
+		in, want string
+	}{
+		{"~/projects", filepath.Join(dir, "projects")},
+		{"~", "~"},
+		{"/abs/path", "/abs/path"},
+		{"relative/path", "relative/path"},
+		{"", ""},
+	}
+	for _, c := range cases {
+		if got := expandHome(c.in); got != c.want {
+			t.Errorf("expandHome(%q) = %q, want %q", c.in, got, c.want)
+		}
+	}
+}
+
+func TestPaneCommand(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+
+	cases := []struct {
+		name string
+		p    PaneConfig
+		want string
+	}{
+		{"cmd only", PaneConfig{Command: "nvim"}, "nvim"},
+		{"dir only", PaneConfig{Directory: "~/proj"}, "cd " + filepath.Join(dir, "proj")},
+		{"cmd+dir", PaneConfig{Command: "nvim", Directory: "~/proj"}, "cd " + filepath.Join(dir, "proj") + " && nvim"},
+		{"empty", PaneConfig{}, ""},
+		{"abs dir", PaneConfig{Command: "ls", Directory: "/tmp"}, "cd /tmp && ls"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := paneCommand(c.p); got != c.want {
+				t.Errorf("paneCommand = %q, want %q", got, c.want)
+			}
+		})
+	}
+}
+
+func TestLoadDirMissing(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "does-not-exist")
+	got, err := LoadDir(dir)
+	if err != nil {
+		t.Fatalf("expected nil error for missing dir, got %v", err)
+	}
+	if got != nil {
+		t.Errorf("expected nil map, got %v", got)
+	}
+}
+
+func TestLoadDirValid(t *testing.T) {
+	dir := t.TempDir()
+	writeYAML(t, dir, "a.yaml", `
+sessions:
+  - name: dev
+    panes:
+      - command: nvim
+        directory: ~/proj
+  - name: db
+    windows:
+      - name: main
+        panes:
+          - command: psql
+`)
+
+	configs, err := LoadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(configs) != 2 {
+		t.Fatalf("expected 2 sessions, got %d", len(configs))
+	}
+	if configs["dev"].Panes[0].Command != "nvim" {
+		t.Errorf("dev.panes[0].command = %q", configs["dev"].Panes[0].Command)
+	}
+	if len(configs["db"].Windows) != 1 || configs["db"].Windows[0].Name != "main" {
+		t.Errorf("db.windows mismatch: %+v", configs["db"])
+	}
+}
+
+func TestLoadDirSkipsNonYAML(t *testing.T) {
+	dir := t.TempDir()
+	writeYAML(t, dir, "a.yaml", `sessions: [{name: x}]`)
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("ignore me"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	configs, err := LoadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := configs["x"]; !ok {
+		t.Error("expected session x loaded")
+	}
+}
+
+func TestLoadDirInvalidYAML(t *testing.T) {
+	dir := t.TempDir()
+	writeYAML(t, dir, "bad.yaml", ":\n  - not: [valid")
+	_, err := LoadDir(dir)
+	if err == nil {
+		t.Error("expected error for invalid YAML")
+	}
+}
+
+func TestLoadDirMissingSessionName(t *testing.T) {
+	dir := t.TempDir()
+	writeYAML(t, dir, "a.yaml", `
+sessions:
+  - panes:
+      - command: nvim
+`)
+	_, err := LoadDir(dir)
+	if err == nil || !contains(err.Error(), "name") {
+		t.Errorf("expected name error, got %v", err)
+	}
+}
+
+func TestLoadDirDuplicateName(t *testing.T) {
+	dir := t.TempDir()
+	writeYAML(t, dir, "a.yaml", `sessions: [{name: dup}]`)
+	writeYAML(t, dir, "b.yaml", `sessions: [{name: dup}]`)
+	_, err := LoadDir(dir)
+	if err == nil || !contains(err.Error(), "duplicate") {
+		t.Errorf("expected duplicate error, got %v", err)
+	}
+}
+
+func TestLoadDirSkipsDirectories(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "subdir"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeYAML(t, dir, "a.yaml", `sessions: [{name: x}]`)
+	configs, err := LoadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(configs) != 1 {
+		t.Errorf("expected 1 session (dir skipped), got %d", len(configs))
+	}
+}
+
+func TestRestoreAllSkipsExisting(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+
+	cfgDir := filepath.Join(dir, ".config", "tmux-manager", "sessions")
+	if err := os.MkdirAll(cfgDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeYAML(t, cfgDir, "a.yaml", `sessions: [{name: existing}, {name: fresh}]`)
+
+	origHas := hasSessionFn
+	hasSessionFn = func(name string) bool { return name == "existing" }
+	defer func() { hasSessionFn = origHas }()
+
+	created, restoreExec := captureExec(t)
+	defer restoreExec()
+
+	if err := RestoreAll(); err != nil {
+		t.Fatal(err)
+	}
+	if len(*created) != 1 || (*created)[0] != "fresh" {
+		t.Errorf("expected only 'fresh' created, got %v", *created)
+	}
+}
+
+func writeYAML(t *testing.T, dir, name, content string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func contains(s, sub string) bool {
+	for i := 0; i+len(sub) <= len(s); i++ {
+		if s[i:i+len(sub)] == sub {
+			return true
+		}
+	}
+	return false
+}
