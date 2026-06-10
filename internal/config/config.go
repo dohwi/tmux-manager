@@ -42,6 +42,25 @@ var execCommand = exec.Command
 // hasSessionFn is overridable for tests.
 var hasSessionFn = tmux.HasSession
 
+func validateSessionCommands(session SessionConfig) error {
+	for _, p := range session.Panes {
+		if err := validateCommand(p.Command); err != nil {
+			return err
+		}
+	}
+	for _, w := range session.Windows {
+		if err := validateCommand(w.Command); err != nil {
+			return err
+		}
+		for _, p := range w.Panes {
+			if err := validateCommand(p.Command); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // LoadDir reads YAML files from the given directory and returns parsed configs.
 func LoadDir(dir string) (map[string]SessionConfig, error) {
 	entries, err := os.ReadDir(dir)
@@ -75,6 +94,9 @@ func LoadDir(dir string) (map[string]SessionConfig, error) {
 			}
 			if _, ok := configs[cfg.Name]; ok {
 				return nil, fmt.Errorf("duplicate session name: %s (from %s)", cfg.Name, entry.Name())
+			}
+			if err := validateSessionCommands(cfg); err != nil {
+				return nil, fmt.Errorf("%s session %q: %w", entry.Name(), cfg.Name, err)
 			}
 			configs[cfg.Name] = cfg
 		}

@@ -249,6 +249,64 @@ func TestCreateSessionSelectPaneError(t *testing.T) {
 	}
 }
 
+func TestValidateCommandAcceptsSafe(t *testing.T) {
+	safe := []string{"nvim", "npm run dev", "cd ~/proj && ls", "echo hi", "", "htop", "docker compose up"}
+	for _, s := range safe {
+		t.Run(s, func(t *testing.T) {
+			if err := validateCommand(s); err != nil {
+				t.Errorf("expected valid, got err: %v", err)
+			}
+		})
+	}
+}
+
+func TestValidateCommandRejectsMetachars(t *testing.T) {
+	dangerous := []string{
+		"rm -rf $HOME",
+		"ls; whoami",
+		"`backtick`",
+		"echo > /tmp/out",
+		"cat < /etc/passwd",
+		"cmd|pipe",
+	}
+	for _, s := range dangerous {
+		t.Run(s, func(t *testing.T) {
+			if err := validateCommand(s); err == nil {
+				t.Errorf("expected error for %q, got nil", s)
+			}
+		})
+	}
+}
+
+func TestLoadDirRejectsInjectedCommand(t *testing.T) {
+	dir := t.TempDir()
+	writeYAML(t, dir, "bad.yaml", `
+sessions:
+  - name: evil
+    panes:
+      - command: "rm -rf $HOME"
+`)
+	_, err := LoadDir(dir)
+	if err == nil {
+		t.Error("expected error for injected command")
+	}
+}
+
+func TestLoadDirRejectsWindowCommandInjection(t *testing.T) {
+	dir := t.TempDir()
+	writeYAML(t, dir, "bad.yaml", `
+sessions:
+  - name: evil
+    windows:
+      - name: win1
+        command: "ls; rm -rf /"
+`)
+	_, err := LoadDir(dir)
+	if err == nil {
+		t.Error("expected error for window command injection")
+	}
+}
+
 func writeYAML(t *testing.T, dir, name, content string) {
 	t.Helper()
 	if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
