@@ -6,6 +6,11 @@
 
 Create, switch, and kill sessions with `tm`. Define your workspace in YAML and restore it on reboot.
 
+[![CI](https://github.com/dohwi/tmux-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/dohwi/tmux-manager/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/release/dohwi/tmux-manager.svg)](https://github.com/dohwi/tmux-manager/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dohwi/tmux-manager)](https://goreportcard.com/report/github.com/dohwi/tmux-manager)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 </div>
 
 ---
@@ -50,8 +55,14 @@ To update, run `tm update` from any terminal.
 ## 🚀 Usage
 
 ```bash
-tm          # Launch TUI
-tm restore  # Restore sessions from config
+tm                      # Launch TUI
+tm restore              # Restore sessions from YAML
+tm restore --dry-run    # Show what would be restored
+tm setup                # Install symlink and shell integration
+tm setup --uninstall    # Remove symlink and shell integration
+tm update               # Update to the latest release
+tm update --check       # Check for updates without installing
+tm version              # Print version
 ```
 
 ### Keybindings
