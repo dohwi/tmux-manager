@@ -53,11 +53,16 @@ func CheckUpdate(repoDir string) (bool, error) {
 }
 
 func Update(repoDir string) error {
-	cmd := exec.Command("git", "-C", repoDir, "pull")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("git pull: %w", err)
+	fetchCmd := exec.Command("git", "-C", repoDir, "fetch", "origin")
+	if out, err := fetchCmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("git fetch: %s: %w", strings.TrimSpace(string(out)), err)
+	}
+
+	checkoutCmd := exec.Command("git", "-C", repoDir, "checkout", "-B", "main", "origin/main")
+	checkoutCmd.Stdout = os.Stdout
+	checkoutCmd.Stderr = os.Stderr
+	if err := checkoutCmd.Run(); err != nil {
+		return fmt.Errorf("git checkout: %w", err)
 	}
 
 	buildCmd := exec.Command("go", "build", "-o", filepath.Join(repoDir, "tmux-manager"), ".")
