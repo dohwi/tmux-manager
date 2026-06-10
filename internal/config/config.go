@@ -103,6 +103,11 @@ func RestoreAll() error {
 	if err != nil {
 		return err
 	}
+	if len(configs) == 0 {
+		dir, _ := ConfigDir()
+		fmt.Fprintf(os.Stderr, "no sessions defined. Add YAML files to %s\n", dir)
+		return nil
+	}
 
 	for name, cfg := range configs {
 		if hasSessionFn(name) {
