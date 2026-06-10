@@ -1,0 +1,13 @@
+version: "2"
+
+linters:
+  enable:
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - wastedassign
+
+formatters:
+  enable:
+    - gofumpt

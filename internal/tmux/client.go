@@ -81,7 +81,7 @@ func SwitchSession(name string) error {
 	cmd := exec.Command("tmux", "switch-client", "-t", name)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf(strings.TrimSpace(string(out)))
+		return fmt.Errorf("%s", strings.TrimSpace(string(out)))
 	}
 	return nil
 }

@@ -126,7 +126,7 @@ func createSession(name string, cfg SessionConfig) error {
 
 	for i := 1; i < len(cfg.Windows); i++ {
 		w := cfg.Windows[i]
-		exec.Command("tmux", "new-window", "-t", name, "-n", w.Name).Run()
+		_ = exec.Command("tmux", "new-window", "-t", name, "-n", w.Name).Run()
 		createWindowPanes(name, i, w)
 	}
 
@@ -143,15 +143,15 @@ func createWindowPanes(session string, windowIdx int, w WindowConfig) {
 				if pane.Direction == "right" {
 					flag = "-h"
 				}
-				exec.Command("tmux", "split-window", "-t", target, flag).Run()
+				_ = exec.Command("tmux", "split-window", "-t", target, flag).Run()
 			}
 			paneTarget := fmt.Sprintf("%s.%d", target, i)
 			if pane.Name != "" {
-				exec.Command("tmux", "select-pane", "-t", paneTarget, "-T", pane.Name).Run()
+				_ = exec.Command("tmux", "select-pane", "-t", paneTarget, "-T", pane.Name).Run()
 			}
 			cmd := paneCommand(pane)
 			if cmd != "" {
-				exec.Command("tmux", "send-keys", "-t", paneTarget, cmd, "Enter").Run()
+				_ = exec.Command("tmux", "send-keys", "-t", paneTarget, cmd, "Enter").Run()
 			}
 		}
 		return
@@ -162,7 +162,7 @@ func createWindowPanes(session string, windowIdx int, w WindowConfig) {
 		if w.Directory != "" {
 			cmd = fmt.Sprintf("cd %s && %s", expandHome(w.Directory), cmd)
 		}
-		exec.Command("tmux", "send-keys", "-t", target+".0", cmd, "Enter").Run()
+		_ = exec.Command("tmux", "send-keys", "-t", target+".0", cmd, "Enter").Run()
 	}
 }
 
