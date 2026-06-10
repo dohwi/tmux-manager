@@ -13,6 +13,9 @@ var execCommand = exec.Command
 var currentSessionFn = CurrentSession
 
 func IsAvailable() bool {
+	if isAvailableFn != nil {
+		return isAvailableFn()
+	}
 	_, err := exec.LookPath("tmux")
 	return err == nil
 }
