@@ -4,7 +4,7 @@ builds:
   - main: ./cmd/tmux-manager
     binary: tmux-manager
     ldflags:
-      - -s -w -X main.version={{ .Commit }}
+      - -s -w -X github.com/dohwi/tmux-manager/internal/cli.Version={{ .Version }}
     env:
       - CGO_ENABLED=0
     goos:
