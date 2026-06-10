@@ -1,1 +1,10 @@
 /tmux-manager
+/dist/
+/bin/
+/coverage.txt
+*.test
+*.out
+.DS_Store
+.idea/
+.vscode/
+*.swp
