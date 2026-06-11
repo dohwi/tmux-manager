@@ -51,6 +51,9 @@ func runTUI(cmd *cobra.Command, _ []string) error {
 }
 
 func checkAutoUpdate() bool {
+	if Version == "dev" {
+		return false
+	}
 	if !update.ShouldCheck() {
 		return false
 	}
@@ -129,6 +132,10 @@ func newUpdateCmd() *cobra.Command {
 		Use:   "update",
 		Short: "Update tmux-manager to the latest release",
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			if Version == "dev" {
+				fmt.Println("Development build. Use 'go install github.com/dohwi/tmux-manager/cmd/tmux-manager@latest' to update.")
+				return nil
+			}
 			available, latest, err := update.CheckUpdate(Version)
 			if err != nil {
 				return fmt.Errorf("check: %w", err)
