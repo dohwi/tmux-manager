@@ -136,3 +136,32 @@ func MarkChecked() {
 	}
 	_ = os.WriteFile(lastCheckPath(), []byte(strconv.FormatInt(nowFunc().Unix(), 10)), 0o644)
 }
+
+func cachePath() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".config", "tmux-manager", ".update-cache")
+}
+
+func IsCachedUpdateAvailable() bool {
+	data, err := os.ReadFile(cachePath())
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(string(data)) == "true"
+}
+
+func CacheUpdateState(available bool) {
+	dir := filepath.Dir(cachePath())
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return
+	}
+	content := "false"
+	if available {
+		content = "true"
+	}
+	_ = os.WriteFile(cachePath(), []byte(content), 0o644)
+}
+
+func ClearUpdateCache() {
+	_ = os.Remove(cachePath())
+}
