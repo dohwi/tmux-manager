@@ -60,7 +60,7 @@ func TestCompareSemver(t *testing.T) {
 }
 
 func TestCheckUpdateEmptyVersion(t *testing.T) {
-	available, tag, err := CheckUpdate("", false)
+	available, tag, err := CheckUpdate("")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -73,7 +73,7 @@ func TestCheckUpdateNewerAvailable(t *testing.T) {
 	restore := swapFetcher(func() (string, error) { return "v0.99.0", nil })
 	defer restore()
 
-	available, tag, err := CheckUpdate("v0.1.0", false)
+	available, tag, err := CheckUpdate("v0.1.0")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -89,7 +89,7 @@ func TestCheckUpdateSameVersion(t *testing.T) {
 	restore := swapFetcher(func() (string, error) { return "v0.1.0", nil })
 	defer restore()
 
-	available, tag, err := CheckUpdate("v0.1.0", false)
+	available, tag, err := CheckUpdate("v0.1.0")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -105,7 +105,7 @@ func TestCheckUpdateOlderLocal(t *testing.T) {
 	restore := swapFetcher(func() (string, error) { return "v0.1.0", nil })
 	defer restore()
 
-	available, _, err := CheckUpdate("v0.2.0", false)
+	available, _, err := CheckUpdate("v0.2.0")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -118,7 +118,7 @@ func TestCheckUpdateFetcherError(t *testing.T) {
 	restore := swapFetcher(func() (string, error) { return "", errors.New("network down") })
 	defer restore()
 
-	_, _, err := CheckUpdate("v0.1.0", false)
+	_, _, err := CheckUpdate("v0.1.0")
 	if err == nil {
 		t.Error("expected error from fetcher")
 	}

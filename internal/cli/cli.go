@@ -54,7 +54,7 @@ func checkAutoUpdate() bool {
 	if !update.ShouldCheck() {
 		return false
 	}
-	available, _, err := update.CheckUpdate(Version, false)
+	available, _, err := update.CheckUpdate(Version)
 	update.MarkChecked()
 	if err != nil {
 		return false
@@ -122,15 +122,14 @@ func newSetupCmd() *cobra.Command {
 
 func newUpdateCmd() *cobra.Command {
 	var (
-		checkOnly  bool
-		yes        bool
-		includePre bool
+		checkOnly bool
+		yes       bool
 	)
 	c := &cobra.Command{
 		Use:   "update",
 		Short: "Update tmux-manager to the latest release",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			available, latest, err := update.CheckUpdate(Version, includePre)
+			available, latest, err := update.CheckUpdate(Version)
 			if err != nil {
 				return fmt.Errorf("check: %w", err)
 			}
@@ -156,7 +155,6 @@ func newUpdateCmd() *cobra.Command {
 	}
 	c.Flags().BoolVar(&checkOnly, "check", false, "only check for updates, do not install")
 	c.Flags().BoolVarP(&yes, "yes", "y", false, "skip confirmation prompt")
-	c.Flags().BoolVar(&includePre, "include-prerelease", false, "consider prerelease versions")
 	return c
 }
 
