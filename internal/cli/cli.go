@@ -55,13 +55,14 @@ func checkAutoUpdate() bool {
 		return false
 	}
 	if !update.ShouldCheck() {
-		return false
+		return update.IsCachedUpdateAvailable()
 	}
 	available, _, err := update.CheckUpdate(Version)
 	update.MarkChecked()
 	if err != nil {
-		return false
+		return update.IsCachedUpdateAvailable()
 	}
+	update.CacheUpdateState(available)
 	return available
 }
 
@@ -157,6 +158,7 @@ func newUpdateCmd() *cobra.Command {
 				return err
 			}
 			fmt.Println("Updated successfully. Run 'tm' to start.")
+			update.ClearUpdateCache()
 			return nil
 		},
 	}
