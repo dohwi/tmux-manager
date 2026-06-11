@@ -71,7 +71,7 @@ func defaultFetcher() (string, error) {
 	return payload.TagName, nil
 }
 
-func CheckUpdate(currentVersion string, includePrerelease bool) (bool, string, error) {
+func CheckUpdate(currentVersion string) (bool, string, error) {
 	current := normalizeTag(currentVersion)
 	if current == "" {
 		return false, "", nil
