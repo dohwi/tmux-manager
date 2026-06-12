@@ -73,7 +73,7 @@ func defaultFetcher() (string, error) {
 
 func CheckUpdate(currentVersion string) (bool, string, error) {
 	current := normalizeTag(currentVersion)
-	if current == "" || current == "dev" {
+	if current == "" || current == "dev" || current == "(devel)" {
 		return false, "", nil
 	}
 

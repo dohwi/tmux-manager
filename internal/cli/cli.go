@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime/debug"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -15,6 +17,18 @@ import (
 )
 
 var Version = "dev"
+
+func init() {
+	if Version != "dev" {
+		return
+	}
+	if info, ok := debug.ReadBuildInfo(); ok {
+		v := info.Main.Version
+		if v != "" && v != "(devel)" && !strings.HasPrefix(v, "v0.0.0") {
+			Version = v
+		}
+	}
+}
 
 func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
@@ -51,7 +65,7 @@ func runTUI(cmd *cobra.Command, _ []string) error {
 }
 
 func checkAutoUpdate() bool {
-	if Version == "dev" {
+	if isDev() {
 		return false
 	}
 	if !update.ShouldCheck() {
@@ -133,7 +147,7 @@ func newUpdateCmd() *cobra.Command {
 		Use:   "update",
 		Short: "Update tmux-manager to the latest release",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if Version == "dev" {
+			if isDev() {
 				fmt.Println("Development build. Use 'go install github.com/dohwi/tmux-manager/cmd/tmux-manager@latest' to update.")
 				return nil
 			}
@@ -182,4 +196,8 @@ func confirm() bool {
 	var ans string
 	_, _ = fmt.Scanln(&ans)
 	return ans == "y" || ans == "Y"
+}
+
+func isDev() bool {
+	return Version == "dev"
 }
