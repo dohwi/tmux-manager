@@ -26,8 +26,21 @@ func init() {
 		v := info.Main.Version
 		if v != "" && v != "(devel)" && !strings.HasPrefix(v, "v0.0.0") {
 			Version = v
+			return
 		}
 	}
+	if v := resolveGitVersion(); v != "" {
+		Version = v
+	}
+}
+
+func resolveGitVersion() string {
+	cmd := exec.Command("git", "describe", "--tags", "--dirty", "--always")
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
 }
 
 func newRootCmd() *cobra.Command {
@@ -199,5 +212,17 @@ func confirm() bool {
 }
 
 func isDev() bool {
-	return Version == "dev"
+	switch {
+	case Version == "dev", Version == "(devel)":
+		return true
+	case strings.HasPrefix(Version, "v0.0.0"):
+		return true
+	case strings.Contains(Version, "-dirty"):
+		return true
+	case strings.Contains(Version, "-g"):
+		return true
+	case !strings.HasPrefix(Version, "v"):
+		return true
+	}
+	return false
 }
