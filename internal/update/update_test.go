@@ -130,9 +130,9 @@ func TestDefaultFetcherNonOK(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	oldClient := httpClient
-	httpClient = srv.Client()
-	defer func() { httpClient = oldClient }()
+	oldURL := githubAPIURL
+	githubAPIURL = srv.URL
+	defer func() { githubAPIURL = oldURL }()
 
 	_, err := defaultFetcher()
 	if err == nil {

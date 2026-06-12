@@ -15,14 +15,14 @@ import (
 
 const (
 	githubRepo     = "dohwi/tmux-manager"
-	githubAPIURL   = "https://api.github.com/repos/" + githubRepo + "/releases/latest"
 	throttleWindow = time.Hour
 )
 
 var (
-	modulePath = "github.com/" + githubRepo
-	cmdPath    = modulePath + "/cmd/tmux-manager"
-	nowFunc    = time.Now
+	githubAPIURL = "https://api.github.com/repos/" + githubRepo + "/releases/latest"
+	modulePath   = "github.com/" + githubRepo
+	cmdPath      = modulePath + "/cmd/tmux-manager"
+	nowFunc      = time.Now
 )
 
 var execCommand = exec.Command
