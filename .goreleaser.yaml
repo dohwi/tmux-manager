@@ -1,0 +1,33 @@
+version: 2
+
+builds:
+  - main: ./cmd/tmux-manager
+    binary: tmux-manager
+    ldflags:
+      - -s -w -X github.com/dohwi/tmux-manager/internal/cli.Version={{ .Version }}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ if eq .Os "darwin" }}macos{{ else }}{{ .Os }}{{ end }}_{{ if eq .Arch "amd64" }}intel{{ else if eq .Arch "arm64" }}silicon{{ else }}{{ .Arch }}{{ end }}
+    files:
+      - README.md
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^ui:'

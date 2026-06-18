@@ -1,0 +1,16 @@
+# Binaries
+/tmux-manager
+/dist/
+/bin/
+/coverage.txt
+*.test
+*.out
+
+# OS / Editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Agent configs (local only)
+.agents/
