@@ -6,15 +6,39 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// Catppuccin Mocha palette.
+// https://github.com/catppuccin/catppuccin
+//
+//nolint:unused
 var (
-	current = lipgloss.Color("#45475a")
-	fg      = lipgloss.Color("#cdd6f4")
-	comment = lipgloss.Color("#6c7086")
-	cyan    = lipgloss.Color("#94e2d5")
-	green   = lipgloss.Color("#a6e3a1")
-	pink    = lipgloss.Color("#f38ba8")
-	purple  = lipgloss.Color("#b4befe")
-	red     = lipgloss.Color("#f38ba8")
+	ctpBase     = lipgloss.Color("#1e1e2e")
+	ctpText     = lipgloss.Color("#cdd6f4")
+	ctpSubtext  = lipgloss.Color("#a6adc8")
+	ctpOverlay  = lipgloss.Color("#6c7086")
+	ctpSurface  = lipgloss.Color("#45475a")
+	ctpBlue     = lipgloss.Color("#89b4fa")
+	ctpLavender = lipgloss.Color("#b4befe")
+	ctpGreen    = lipgloss.Color("#a6e3a1")
+	ctpYellow   = lipgloss.Color("#f9e2af")
+	ctpPeach    = lipgloss.Color("#fab387")
+	ctpPink     = lipgloss.Color("#f5c2e7")
+	ctpMaroon   = lipgloss.Color("#eba0ac")
+	ctpRed      = lipgloss.Color("#f38ba8")
+	ctpMauve    = lipgloss.Color("#cba6f7")
+	ctpTeal     = lipgloss.Color("#94e2d5")
+	ctpSky      = lipgloss.Color("#89dceb")
+)
+
+// Semantic aliases used by the TUI.
+var (
+	current = ctpSurface
+	fg      = ctpText
+	comment = ctpOverlay
+	cyan    = ctpTeal
+	green   = ctpGreen
+	pink    = ctpPink
+	purple  = ctpLavender
+	red     = ctpRed
 )
 
 var (
