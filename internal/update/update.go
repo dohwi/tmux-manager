@@ -27,6 +27,9 @@ var (
 
 var execCommand = exec.Command
 
+// executableFn mirrors os.Executable so tests can override the running binary path.
+var executableFn = os.Executable
+
 // fetcher abstracts the network call so tests can inject a response.
 var fetcher = defaultFetcher
 
@@ -105,9 +108,19 @@ func DoUpdate(tag string) error {
 		spec = cmdPath + "@" + tag
 	}
 
+	// Install into the same directory as the running binary so that
+	// the ~/.local/bin/tm symlink continues to point at the updated binary.
+	binDir := ""
+	if exe, err := executableFn(); err == nil {
+		binDir = filepath.Dir(exe)
+	}
+
 	gobin := resolveGoBin()
 	cmd := execCommand(gobin, "install", spec)
 	cmd.Env = os.Environ()
+	if binDir != "" {
+		cmd.Env = append(cmd.Env, "GOBIN="+binDir)
+	}
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("go install %s: %s", spec, strings.TrimSpace(string(out)))
