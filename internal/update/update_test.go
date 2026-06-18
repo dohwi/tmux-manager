@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -173,6 +175,49 @@ func TestDoUpdateBuildsSpec(t *testing.T) {
 
 	if err := DoUpdate("v1.2.3"); err == nil {
 		t.Error("expected error from fake exec, got nil")
+	}
+}
+
+func TestDoUpdateSetsGOBINToBinaryDir(t *testing.T) {
+	dir := t.TempDir()
+	fakeBin := filepath.Join(dir, "tmux-manager")
+	if err := os.WriteFile(fakeBin, []byte("fake"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	origExec := execCommand
+	defer func() { execCommand = origExec }()
+	origExecutable := executableFn
+	defer func() { executableFn = origExecutable }()
+
+	executableFn = func() (string, error) { return fakeBin, nil }
+
+	envFile := filepath.Join(dir, "env.txt")
+	script := filepath.Join(dir, "fake-go")
+	scriptContent := "#!/bin/sh\nenv > " + envFile + "\nexit 1\n"
+	if err := os.WriteFile(script, []byte(scriptContent), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	execCommand = func(name string, args ...string) *exec.Cmd {
+		if name != "go" {
+			t.Errorf("exec name = %q, want go", name)
+		}
+		return exec.Command(script)
+	}
+
+	if err := DoUpdate("v1.2.3"); err == nil {
+		t.Error("expected error from fake exec, got nil")
+	}
+
+	data, err := os.ReadFile(envFile)
+	if err != nil {
+		t.Fatalf("fake go did not write env file: %v", err)
+	}
+
+	want := "GOBIN=" + dir
+	if !strings.Contains(string(data), want) {
+		t.Errorf("expected env to contain %q, got:\n%s", want, data)
 	}
 }
 
