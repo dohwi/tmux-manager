@@ -117,7 +117,7 @@ func TestSetupFullCycle(t *testing.T) {
 		t.Errorf("expected tmux.conf in config dir, got %v", err)
 	}
 
-	for _, name := range []string{".profile", ".zshrc", ".tmux.conf"} {
+	for _, name := range []string{".profile", ".bashrc", ".zshrc", ".tmux.conf"} {
 		data, _ := os.ReadFile(filepath.Join(home, name))
 		if !hasBlock(string(data)) {
 			t.Errorf("expected block in %s, got %q", name, data)
@@ -134,7 +134,7 @@ func TestSetupFullCycle(t *testing.T) {
 	if _, err := os.Lstat(linkPath); !os.IsNotExist(err) {
 		t.Errorf("expected symlink removed")
 	}
-	for _, name := range []string{".profile", ".zshrc", ".tmux.conf"} {
+	for _, name := range []string{".profile", ".bashrc", ".zshrc", ".tmux.conf"} {
 		data, _ := os.ReadFile(filepath.Join(home, name))
 		if hasBlock(string(data)) {
 			t.Errorf("expected block removed from %s", name)
