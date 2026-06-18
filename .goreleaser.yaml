@@ -21,7 +21,7 @@ archives:
       - goos: windows
         format: zip
     name_template: >-
-      {{ .ProjectName }}_{{ .Version }}_{{ if eq .Os "darwin" }}macos{{ else }}{{ .Os }}{{ end }}_{{ if eq .Arch "amd64" }}intel{{ else if eq .Arch "arm64" }}silicon{{ else }}{{ .Arch }}{{ end }}
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
     files:
       - README.md
 
