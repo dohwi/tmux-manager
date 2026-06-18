@@ -160,6 +160,61 @@ func TestSetupUninstallRefusesToRemoveNonEmptyConfig(t *testing.T) {
 	}
 }
 
+func TestLinkBinaryReplacesStaleFile(t *testing.T) {
+	home := t.TempDir()
+	binDir := filepath.Join(home, ".local", "bin")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	oldBinary := filepath.Join(home, "old-tmux-manager")
+	if err := os.WriteFile(oldBinary, []byte("old"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	newBinary := filepath.Join(home, "new-tmux-manager")
+	if err := os.WriteFile(newBinary, []byte("new"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	linkPath := filepath.Join(binDir, "tm")
+
+	// stale regular file should be replaced
+	if err := os.WriteFile(linkPath, []byte("stale"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := linkBinary(home, newBinary, false); err != nil {
+		t.Fatal(err)
+	}
+	if info, err := os.Lstat(linkPath); err != nil || info.Mode()&os.ModeSymlink == 0 {
+		t.Errorf("expected symlink after replacing stale file")
+	}
+	if target, err := os.Readlink(linkPath); err != nil || target != newBinary {
+		t.Errorf("symlink target = %q, want %q", target, newBinary)
+	}
+
+	// wrong symlink target should be updated
+	if err := os.Remove(linkPath); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(oldBinary, linkPath); err != nil {
+		t.Fatal(err)
+	}
+	if err := linkBinary(home, newBinary, false); err != nil {
+		t.Fatal(err)
+	}
+	if target, err := os.Readlink(linkPath); err != nil || target != newBinary {
+		t.Errorf("updated symlink target = %q, want %q", target, newBinary)
+	}
+
+	// correct symlink should be left alone
+	if err := linkBinary(home, newBinary, false); err != nil {
+		t.Fatal(err)
+	}
+	if target, err := os.Readlink(linkPath); err != nil || target != newBinary {
+		t.Errorf("correct symlink target changed to %q", target)
+	}
+}
+
 func TestWriteTmuxConfigFile(t *testing.T) {
 	dir := t.TempDir()
 	if err := writeTmuxConfigFile(dir); err != nil {

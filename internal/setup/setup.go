@@ -141,10 +141,24 @@ func linkBinary(home, binary string, uninstall bool) error {
 	if err := os.MkdirAll(binDir, 0o755); err != nil {
 		return fmt.Errorf("mkdir %s: %w", binDir, err)
 	}
-	if _, err := os.Lstat(symlinkPath); err == nil {
-		fmt.Printf("already linked: %s\n", symlinkPath)
-		return nil
+
+	if info, err := os.Lstat(symlinkPath); err == nil {
+		if info.Mode()&os.ModeSymlink == 0 {
+			fmt.Printf("replacing stale binary: %s\n", symlinkPath)
+			if err := os.Remove(symlinkPath); err != nil {
+				return fmt.Errorf("remove stale binary: %w", err)
+			}
+		} else if target, err := os.Readlink(symlinkPath); err == nil && target == binary {
+			fmt.Printf("already linked: %s → %s\n", symlinkPath, binary)
+			return nil
+		} else {
+			fmt.Printf("updating symlink: %s\n", symlinkPath)
+			if err := os.Remove(symlinkPath); err != nil {
+				return fmt.Errorf("remove old symlink: %w", err)
+			}
+		}
 	}
+
 	if err := os.Symlink(binary, symlinkPath); err != nil {
 		return fmt.Errorf("symlink: %w", err)
 	}
