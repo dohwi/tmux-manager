@@ -87,21 +87,32 @@ func Setup(opts Options) error {
 	}
 
 	profile := filepath.Join(home, ".profile")
+	bashrc := filepath.Join(home, ".bashrc")
 	zshrc := filepath.Join(home, ".zshrc")
 
-	profileContent := "tm restore 2>/dev/null"
-	zshrcContent := "alias tm='nocorrect tm'"
+	restoreContent := "tm restore >/dev/null 2>&1"
+	pathContent := localBinPathLine()
+	bashProfileContent := pathContent + "\n" + restoreContent
+	zshrcContent := pathContent + "\n" + "alias tm='nocorrect tm'\n" + restoreContent
 
-	if err := updateShellFile(profile, profileContent, opts.Uninstall); err != nil {
-		fmt.Fprintf(os.Stderr, "profile error: %v\n", err)
-	} else if !opts.Uninstall {
-		fmt.Println("registered: tm restore in ~/.profile")
+	for _, entry := range []struct {
+		path    string
+		content string
+		label   string
+	}{
+		{profile, bashProfileContent, "tm restore in ~/.profile"},
+		{bashrc, bashProfileContent, "tm restore in ~/.bashrc"},
+		{zshrc, zshrcContent, "tm restore + nocorrect alias in ~/.zshrc"},
+	} {
+		if err := updateShellFile(entry.path, entry.content, opts.Uninstall); err != nil {
+			fmt.Fprintf(os.Stderr, "%s error: %v\n", filepath.Base(entry.path), err)
+		} else if !opts.Uninstall {
+			fmt.Printf("registered: %s\n", entry.label)
+		}
 	}
 
-	if err := updateShellFile(zshrc, zshrcContent, opts.Uninstall); err != nil {
-		fmt.Fprintf(os.Stderr, "zshrc error: %v\n", err)
-	} else if !opts.Uninstall {
-		fmt.Println("registered: nocorrect alias in ~/.zshrc")
+	if !opts.Uninstall {
+		warnIfLocalBinNotInPATH(home)
 	}
 
 	if opts.Uninstall {
@@ -237,6 +248,21 @@ func removeBlock(content string) string {
 		endIdx++
 	}
 	return content[:startIdx] + content[endIdx:]
+}
+
+func localBinPathLine() string {
+	return `case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac`
+}
+
+func warnIfLocalBinNotInPATH(home string) {
+	binDir := filepath.Join(home, ".local", "bin")
+	if _, err := exec.LookPath("tm"); err == nil {
+		return
+	}
+	if _, err := exec.LookPath("tmux-manager"); err == nil {
+		return
+	}
+	fmt.Fprintf(os.Stderr, "warning: %s is not in PATH. Add it to ~/.profile or ~/.bashrc:\n  %s\n", binDir, localBinPathLine())
 }
 
 func defaultEnsureTmux() error {
