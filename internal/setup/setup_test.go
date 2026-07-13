@@ -134,6 +134,10 @@ func TestSetupFullCycle(t *testing.T) {
 	if _, err := os.Lstat(linkPath); !os.IsNotExist(err) {
 		t.Errorf("expected symlink removed")
 	}
+	tmuxCfg = filepath.Dir(cfgDir) + "/tmux.conf"
+	if _, err := os.Stat(tmuxCfg); !os.IsNotExist(err) {
+		t.Errorf("expected tmux.conf removed")
+	}
 	for _, name := range []string{".profile", ".bashrc", ".zshrc", ".tmux.conf"} {
 		data, _ := os.ReadFile(filepath.Join(home, name))
 		if hasBlock(string(data)) {
@@ -228,7 +232,16 @@ func TestWriteTmuxConfigFile(t *testing.T) {
 		t.Errorf("expected status-style in config, got %q", got)
 	}
 
+	// second call must NOT overwrite (user may have edited it)
+	path := filepath.Join(dir, "tmux.conf")
+	if err := os.WriteFile(path, []byte("# user custom\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	if err := writeTmuxConfigFile(dir); err != nil {
 		t.Fatal(err)
+	}
+	got2, _ := os.ReadFile(path)
+	if string(got2) != "# user custom\n" {
+		t.Errorf("expected user content preserved, got %q", got2)
 	}
 }
