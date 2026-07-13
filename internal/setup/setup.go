@@ -63,7 +63,11 @@ func Setup(opts Options) error {
 		return err
 	}
 
-	if !opts.Uninstall {
+	if opts.Uninstall {
+		if err := removeTmuxConfigFile(filepath.Dir(cfgDir)); err != nil {
+			fmt.Fprintf(os.Stderr, "tmux.conf remove: %v\n", err)
+		}
+	} else {
 		if err := ensureTmuxFn(); err != nil {
 			fmt.Fprintf(os.Stderr, "tmux install: %v\n", err)
 			fmt.Println("  tmux is required. Install manually: https://github.com/tmux/tmux/wiki")
@@ -214,12 +218,29 @@ func writeTmuxConfigFile(parentDir string) error {
 	if err := os.MkdirAll(parentDir, 0o755); err != nil {
 		return fmt.Errorf("mkdir %s: %w", parentDir, err)
 	}
+	// ponytail: never overwrite a user-edited tmux.conf. add --reset-config flag when requested.
 	if _, err := os.Stat(path); err == nil {
-		fmt.Printf("updated: %s\n", path)
-	} else {
-		fmt.Printf("created: %s\n", path)
+		fmt.Printf("kept: %s (exists)\n", path)
+		return nil
 	}
+	fmt.Printf("created: %s\n", path)
 	return os.WriteFile(path, defaultTmuxConf, 0o644)
+}
+
+func removeTmuxConfigFile(parentDir string) error {
+	path := filepath.Join(parentDir, "tmux.conf")
+	if _, err := os.Stat(path); err == nil {
+		if err := os.Remove(path); err != nil {
+			return err
+		}
+		fmt.Printf("removed: %s\n", path)
+	}
+	if entries, err := os.ReadDir(parentDir); err == nil && len(entries) == 0 {
+		if err := os.Remove(parentDir); err == nil {
+			fmt.Printf("removed: %s\n", parentDir)
+		}
+	}
+	return nil
 }
 
 func updateShellFile(path, content string, uninstall bool) error {
