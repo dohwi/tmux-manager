@@ -225,8 +225,6 @@ func isDev() bool {
 		return true
 	case strings.Contains(Version, "-g"):
 		return true
-	case !strings.HasPrefix(Version, "v"):
-		return true
 	}
 	return false
 }
