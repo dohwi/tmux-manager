@@ -1,19 +1,18 @@
 <div align="center">
+  <h1>tmux-manager</h1>
+  <p>TUI session manager for tmux — define workspaces in YAML, restore on reboot</p>
 
-# tmux-manager
-
-**TUI session manager for tmux — define workspaces in YAML, restore on reboot.**
-
-[![CI](https://github.com/dohwi/tmux-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/dohwi/tmux-manager/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/release/dohwi/tmux-manager.svg)](https://github.com/dohwi/tmux-manager/releases)
-[![Go Report Card](https://goreportcard.com/badge/github.com/dohwi/tmux-manager)](https://goreportcard.com/report/github.com/dohwi/tmux-manager)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-
+  <p>
+    <img src="https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat-square&logo=go&logoColor=white" />
+    <img src="https://img.shields.io/badge/tmux-v3.0+-1BB954?style=flat-square&logo=tmux&logoColor=white" />
+    <img src="https://img.shields.io/github/v/release/dohwi/tmux-manager?style=flat-square" />
+    <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" />
+  </p>
 </div>
 
 ---
 
-## ✨ Features
+## Features
 
 - 🎯 **Keyboard-driven TUI** — browse, create, and kill sessions in seconds
 - 📄 **YAML workspaces** — define sessions, windows, and pane layouts as code
