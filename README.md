@@ -3,9 +3,9 @@
   <p>TUI session manager for tmux — define workspaces in YAML, restore on reboot</p>
 
   <p>
-    <img src="https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat-square&logo=go&logoColor=white" />
-    <img src="https://img.shields.io/badge/tmux-v3.0+-1BB954?style=flat-square&logo=tmux&logoColor=white" />
-    <img src="https://img.shields.io/github/v/release/dohwi/tmux-manager?style=flat-square" />
+    <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat-square&logo=go&logoColor=white" /></a>
+    <a href="https://go.dev"><img src="https://img.shields.io/badge/tmux-v3.0+-1BB954?style=flat-square&logo=tmux&logoColor=white" /></a>
+    <a href="https://github.com/tmux/tmux"><img src="https://img.shields.io/github/v/release/dohwi/tmux-manager?style=flat-square" /></a>
     <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" />
   </p>
 </div>
